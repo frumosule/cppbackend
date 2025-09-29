@@ -5,6 +5,10 @@ project(Hello CXX)
 # ������� ��� ����� ��������������� � ���������� ��������� �++ 20
 set(CMAKE_CXX_STANDARD 20)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
         include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
     endif()
