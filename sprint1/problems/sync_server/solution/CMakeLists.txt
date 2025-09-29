@@ -5,6 +5,10 @@ project(Hello CXX)
 # ������� ��� ����� ��������������� � ���������� ��������� �++ 20
 set(CMAKE_CXX_STANDARD 20)
 
+if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+        include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+    endif()
+
 # ���������� ��������������� ������ conanbuildinfo.cmake, ��������� Conan
 
 # ���� Boost ������ 1.78
@@ -23,8 +27,9 @@ find_package(Threads REQUIRED)
 
 # ������ �������� ������������ �������� ���� src/main.cpp
 add_executable(hello src/main.cpp)
+
 # ������ ����������� ���������� ���������� ��� ��������� �������
-target_link_libraries(hello PRIVATE Threads::Threads)
+target_link_libraries(hello PRIVATE Threads::Threads Boost::system)
 if(WIN32)
 target_link_libraries(hello PRIVATE ws2_32 mswsock)
 endif()
