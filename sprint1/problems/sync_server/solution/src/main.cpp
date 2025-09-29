@@ -30,7 +30,7 @@ http::response<http::string_body> HandleRequest(http::request<http::string_body>
         http::response<http::string_body> res{http::status::method_not_allowed, req.version()};
         res.set(http::field::content_type, "text/html");
         res.set(http::field::allow, "GET, HEAD");
-        res.body() = "Invalid method.";
+        res.body() = "Invalid method";
         res.prepare_payload();
         return res;
     }
