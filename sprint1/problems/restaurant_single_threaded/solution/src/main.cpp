@@ -88,6 +88,72 @@ private:
 // Функция, которая будет вызвана по окончании обработки заказа
 using OrderHandler = std::function<void(sys::error_code ec, int id, Hamburger* hamburger)>;
 
+class Order {
+public:
+    Order(net::io_context& io, int id, bool with_onion, OrderHandler handler)
+        : io_(io),
+          id_(id),
+          with_onion_(with_onion),
+          handler_(std::move(handler)),
+          logger_("order#"s + std::to_string(id)) {
+    }
+
+    void Start() {
+        logger_.LogMessage("Start cooking"sv);
+        
+        // Начинаем с жарки котлеты
+        roast_timer_.emplace(io_, 1s);
+        roast_timer_->async_wait([this](sys::error_code ec) {
+            OnRoasted(ec);
+        });
+    }
+
+private:
+    void OnRoasted(sys::error_code ec) {
+        if (ec) {
+            // Таймер был отменён
+            return;
+        }
+
+        logger_.LogMessage("Cutlet roasted"sv);
+        hamburger_.SetCutletRoasted();
+
+        if (with_onion_) {
+            // Если нужен лук, добавляем его
+            logger_.LogMessage("Add onion"sv);
+            hamburger_.AddOnion();
+        }
+
+        // Переходим к упаковке
+        pack_timer_.emplace(io_, 1s);
+        pack_timer_->async_wait([this](sys::error_code ec) {
+            OnPacked(ec);
+        });
+    }
+
+    void OnPacked(sys::error_code ec) {
+        if (ec) {
+            // Таймер был отменён
+            return;
+        }
+
+        logger_.LogMessage("Packed"sv);
+        hamburger_.Pack();
+
+        // Заказ готов, вызываем обработчик
+        handler_(sys::error_code{}, id_, &hamburger_);
+    }
+
+    net::io_context& io_;
+    int id_;
+    bool with_onion_;
+    OrderHandler handler_;
+    Logger logger_;
+    Hamburger hamburger_;
+    std::optional<Timer> roast_timer_;
+    std::optional<Timer> pack_timer_;
+};
+
 class Restaurant {
 public:
     explicit Restaurant(net::io_context& io)
