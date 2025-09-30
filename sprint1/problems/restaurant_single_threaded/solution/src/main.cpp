@@ -91,7 +91,7 @@ private:
 // Функция, которая будет вызвана по окончании обработки заказа
 using OrderHandler = std::function<void(sys::error_code ec, int id, Hamburger* hamburger)>;
 
-class Order {
+class Order : public std::enable_shared_from_this<Order> {
 public:
     Order(net::io_context& io, int id, bool with_onion, OrderHandler handler)
         : io_(io),
@@ -104,10 +104,11 @@ public:
     void Start() {
         logger_.LogMessage("Start cooking"sv);
         
-        // Начинаем с жарки котлеты
+        // Используем shared_from_this() чтобы гарантировать время жизни объекта
+        auto self = shared_from_this();
         roast_timer_.emplace(io_, 1s);
-        roast_timer_->async_wait([this](sys::error_code ec) {
-            OnRoasted(ec);
+        roast_timer_->async_wait([self](sys::error_code ec) {
+            self->OnRoasted(ec);
         });
     }
 
@@ -128,9 +129,10 @@ private:
         }
 
         // Переходим к упаковке
+        auto self = shared_from_this();
         pack_timer_.emplace(io_, 1s);
-        pack_timer_->async_wait([this](sys::error_code ec) {
-            OnPacked(ec);
+        pack_timer_->async_wait([self](sys::error_code ec) {
+            self->OnPacked(ec);
         });
     }
 
@@ -165,7 +167,11 @@ public:
 
     int MakeHamburger(bool with_onion, OrderHandler handler) {
         const int order_id = ++next_order_id_;
-        /* Напишите недостающий код */
+        
+        // Создаем заказ и начинаем его обработку
+        auto order = std::make_shared<Order>(io_, order_id, with_onion, std::move(handler));
+        order->Start();
+        
         return order_id;
     }
 
