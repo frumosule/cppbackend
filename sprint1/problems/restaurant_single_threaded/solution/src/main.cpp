@@ -9,6 +9,9 @@
 #include <sstream>
 #include <syncstream>
 #include <unordered_map>
+#include <optional>
+#include <functional>
+#include <memory>
 
 namespace net = boost::asio;
 namespace sys = boost::system;
