@@ -41,7 +41,7 @@ StringResponse HandleRequest(StringRequest&& req) {
     // Проверяем метод запроса
     if (req.method() != http::verb::get && req.method() != http::verb::head) {
         // Метод не GET и не HEAD - возвращаем 
-        auto response = MakeStringResponse(http::status::method_not_allowed, "Invalid method"sv, 
+        auto response = MakeStringResponse(http::status::method_not_allowed, "Invalid method."sv, 
                                          req.version(), req.keep_alive());
         response.set(http::field::allow, "GET, HEAD");
         return response;
