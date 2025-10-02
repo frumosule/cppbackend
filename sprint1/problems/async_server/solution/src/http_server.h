@@ -7,6 +7,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <iostream>
 
 namespace http_server {
 
@@ -49,27 +50,53 @@ private:
     }
 
     void OnRead(beast::error_code ec, std::size_t bytes_read) {
+    try {
         if (ec == http::error::end_of_stream) {
             return Close();
         }
         if (ec) {
+            std::cout << "Read error: " << ec.message() << std::endl;
             return;
         }
 
+        std::cout << "Successfully read " << bytes_read << " bytes, starting HandleRequest" << std::endl;
         HandleRequest();
+    } catch (const std::exception& e) {
+        std::cout << "OnRead exception: " << e.what() << std::endl;
+        Close();
     }
+}
 
     void HandleRequest() {
+    try {
         auto self = this->shared_from_this();
         
-        // Используем strand для гарантии, что обработчик не будет вызван конкурентно
         net::dispatch(stream_.get_executor(), [self] {
-            self->handler_(std::move(self->request_),
-                          [self](StringResponse&& response) {
+            try {
+                self->handler_(std::move(self->request_),
+                              [self](StringResponse&& response) {
+                    try {
+                        self->Write(std::move(response));
+                    } catch (const std::exception& e) {
+                        std::cout << "Write callback error: " << e.what() << std::endl;
+                        self->Close();
+                    }
+                });
+            } catch (const std::exception& e) {
+                std::cout << "Handler dispatch error: " << e.what() << std::endl;
+                // Отправляем 500 в случае ошибки
+                StringResponse response{http::status::internal_server_error, self->request_.version()};
+                response.set(http::field::content_type, "text/plain");
+                response.body() = "Internal Server Error";
+                response.prepare_payload();
                 self->Write(std::move(response));
-            });
+            }
         });
+    } catch (const std::exception& e) {
+        std::cout << "HandleRequest error: " << e.what() << std::endl;
+        Close();
     }
+}
 
     void Write(StringResponse&& response) {
         auto sp = std::make_shared<StringResponse>(std::move(response));

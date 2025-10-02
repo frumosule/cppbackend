@@ -34,6 +34,7 @@ StringResponse MakeStringResponse(http::status status, std::string_view body, un
     response.body() = body;
     response.content_length(body.size());
     response.keep_alive(keep_alive);
+    response.prepare_payload();
     return response;
 }
 
