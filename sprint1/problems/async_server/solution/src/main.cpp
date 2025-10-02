@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <cassert>
 
 #include "http_server.h"
 
@@ -22,7 +23,6 @@ using StringResponse = http::response<http::string_body>;
 struct ContentType {
     ContentType() = delete;
     constexpr static std::string_view TEXT_HTML = "text/html"sv;
-    // При необходимости внутрь ContentType можно добавить и другие типы контента
 };
 
 // Создаёт StringResponse с заданными параметрами
@@ -40,10 +40,12 @@ StringResponse MakeStringResponse(http::status status, std::string_view body, un
 StringResponse HandleRequest(StringRequest&& req) {
     // Проверяем метод запроса
     if (req.method() != http::verb::get && req.method() != http::verb::head) {
-        // Метод не GET и не HEAD - возвращаем 
-        auto response = MakeStringResponse(http::status::method_not_allowed, "Invalid method."sv, 
+        // Метод не GET и не HEAD - возвращаем 405
+        std::string body = "Invalid method";
+        auto response = MakeStringResponse(http::status::method_not_allowed, body, 
                                          req.version(), req.keep_alive());
         response.set(http::field::allow, "GET, HEAD");
+        response.content_length(14); // Явно устанавливаем как требует тест
         return response;
     }
 
@@ -82,7 +84,7 @@ void RunWorkers(unsigned n, const Fn& fn) {
 
 }  // namespace
 
-int main() {
+int main() {    
     const unsigned num_threads = std::thread::hardware_concurrency();
 
     net::io_context ioc(num_threads);
