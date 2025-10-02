@@ -5,7 +5,6 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-#include <cassert>
 
 #include "http_server.h"
 
@@ -15,10 +14,9 @@ using namespace std::literals;
 namespace sys = boost::system;
 namespace http = boost::beast::http;
 
-// Запрос, тело которого представлено в виде строки
-using StringRequest = http::request<http::string_body>;
-// Ответ, тело которого представлено в виде строки
-using StringResponse = http::response<http::string_body>;
+// Используем типы из http_server
+using StringRequest = http_server::StringRequest;
+using StringResponse = http_server::StringResponse;
 
 struct ContentType {
     ContentType() = delete;
@@ -34,7 +32,6 @@ StringResponse MakeStringResponse(http::status status, std::string_view body, un
     response.body() = body;
     response.content_length(body.size());
     response.keep_alive(keep_alive);
-    response.prepare_payload();
     return response;
 }
 
@@ -42,11 +39,9 @@ StringResponse HandleRequest(StringRequest&& req) {
     // Проверяем метод запроса
     if (req.method() != http::verb::get && req.method() != http::verb::head) {
         // Метод не GET и не HEAD - возвращаем 405
-        std::string body = "Invalid method";
-        auto response = MakeStringResponse(http::status::method_not_allowed, body, 
+        auto response = MakeStringResponse(http::status::method_not_allowed, "Invalid method"sv, 
                                          req.version(), req.keep_alive());
         response.set(http::field::allow, "GET, HEAD");
-        response.content_length(14); // Явно устанавливаем как требует тест
         return response;
     }
 
@@ -85,7 +80,7 @@ void RunWorkers(unsigned n, const Fn& fn) {
 
 }  // namespace
 
-int main() {    
+int main() {
     const unsigned num_threads = std::thread::hardware_concurrency();
 
     net::io_context ioc(num_threads);
@@ -100,7 +95,7 @@ int main() {
 
     const auto address = net::ip::make_address("0.0.0.0");
     constexpr net::ip::port_type port = 8080;
-
+    
     http_server::ServeHttp(ioc, {address, port}, [](auto&& req, auto&& sender) {
         sender(HandleRequest(std::forward<decltype(req)>(req)));
     });
