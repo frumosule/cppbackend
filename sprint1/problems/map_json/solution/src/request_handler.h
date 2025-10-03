@@ -2,6 +2,7 @@
 #include "http_server.h"
 #include "model.h"
 #include <boost/json.hpp>
+#include <sstream>  // Добавляем для std::stringstream
 
 namespace http_handler {
 namespace beast = boost::beast;
@@ -137,7 +138,12 @@ private:
         StringResponse response(status, req.version());
         response.set(http::field::content_type, "application/json");
         response.set(http::field::cache_control, "no-cache");
-        response.body() = json::serialize(std::forward<T>(data));
+        
+        // ЗАМЕНА: используем stringstream вместо json::serialize
+        std::stringstream ss;
+        ss << std::forward<T>(data);
+        response.body() = ss.str();
+        
         response.prepare_payload();
         return response;
     }
