@@ -9,8 +9,14 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package(Boost 1.84.0 REQUIRED COMPONENTS json)
-include_directories(${Boost_INCLUDE_DIRS})
+if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+  include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+endif()
+
+find_package(Boost 1.84.0 REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
