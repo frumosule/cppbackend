@@ -1,5 +1,6 @@
 [requires]
-boost/1.66.0
+boost/1.84.0
 
 [generators]
-cmake
+CMakeDeps
+CMakeToolchain

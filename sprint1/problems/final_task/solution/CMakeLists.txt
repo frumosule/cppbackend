@@ -9,9 +9,8 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Для Conan 1.x используем conanbuildinfo.cmake вместо conan_toolchain.cmake
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
+find_package(Boost 1.84.0 REQUIRED COMPONENTS json)
+include_directories(${Boost_INCLUDE_DIRS})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -30,9 +29,9 @@ add_executable(game_server
         src/request_handler.h
 )
 
-# Для Conan 1.x используем ${CONAN_LIBS}
-target_link_libraries(game_server PRIVATE ${CONAN_LIBS} Threads::Threads)
-
-if(WIN32)
-target_link_libraries(game_server PRIVATE ws2_32 mswsock)
-endif()
+target_link_libraries(game_server PRIVATE 
+    Threads::Threads 
+    Boost::json
+    ws2_32 
+    mswsock
+)
