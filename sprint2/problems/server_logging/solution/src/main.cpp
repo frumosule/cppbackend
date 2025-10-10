@@ -4,6 +4,7 @@
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <thread>
+#include <regex>
 
 #include "json_loader.h"
 #include "request_handler.h"
@@ -36,6 +37,41 @@ int main(int argc, const char* argv[]) {
         std::cerr << "Usage: game_server <game-config-json> <static-files-path>"sv << std::endl;
         return EXIT_FAILURE;
     }
+
+    std::cout << "=== DEBUG REGEX TEST ===" << std::endl;
+    std::string test_message = "Server has started";
+    std::string pattern = "[Ss]erver (has )?started";
+    std::regex re(pattern);
+    std::smatch match;
+    
+    if (std::regex_search(test_message, match, re)) {
+        std::cout << "Message: '" << test_message << "'" << std::endl;
+        std::cout << "Pattern: '" << pattern << "'" << std::endl;
+        std::cout << "Full match: '" << match[0] << "'" << std::endl;
+        std::cout << "Number of groups: " << match.size() - 1 << std::endl;
+        
+        for (size_t i = 1; i < match.size(); ++i) {
+            if (match[i].matched) {
+                std::cout << "Group " << i << ": '" << match[i] << "'" << std::endl;
+            } else {
+                std::cout << "Group " << i << ": (empty)" << std::endl;
+            }
+        }
+        
+        // Это то, что проверяет тест
+        std::cout << "Python would see groups().size() = " << (match.size() - 1) << std::endl;
+        
+        if (match.size() - 1 == 1) {
+            std::cout << "✓ TEST WOULD PASS" << std::endl;
+        } else {
+            std::cout << "✗ TEST WOULD FAIL" << std::endl;
+        }
+    } else {
+        std::cout << "✗ NO MATCH" << std::endl;
+    }
+    std::cout << "=== END DEBUG ===" << std::endl;
+    // КОНЕЦ ТЕСТА
+
     try {
         // Настройка логирования
         setup_logging();
@@ -66,7 +102,7 @@ int main(int argc, const char* argv[]) {
         constexpr net::ip::port_type port = 8080;
 
          // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
-        //std::cout << "Server has started..."sv << std::endl;
+        std::cout << "Server has started"sv << std::endl;
         
         // Логируем запуск сервера
         ServerLogger::log_server_start(port, address.to_string());
