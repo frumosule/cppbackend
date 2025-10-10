@@ -2,6 +2,9 @@
 #include "formatter.h"
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/manipulators/add_value.hpp>
+#include <iostream>
+#include <string>  // добавьте этот include
+using namespace std::string_literals;
 
 void ServerLogger::log_server_start(unsigned short port, const std::string& address) {
     boost::json::value data = {
@@ -11,6 +14,9 @@ void ServerLogger::log_server_start(unsigned short port, const std::string& addr
     
     BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, data)
                            << "server started";
+
+    // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
+    std::cout << "Server has started"s << std::endl;
 }
 
 void ServerLogger::log_server_exit(int exit_code, const std::string& exception_what) {
