@@ -27,13 +27,17 @@ void JsonFormatter::operator()(logging::record_view const& rec, logging::formatt
     }
     
     strm << json::serialize(log_entry) << "\n";
+    strm.flush();
 }
 
 void setup_logging() {
     logging::add_common_attributes();
     
-    auto sink = logging::add_console_log(std::cout);
-    sink->set_formatter(JsonFormatter{});
+    auto sink = logging::add_console_log(
+        std::cout,
+        logging::keywords::auto_flush = true,
+        logging::keywords::format = JsonFormatter{}  // ← ПРЯМО ЗДЕСЬ
+    );
     
     // Устанавливаем уровень логирования
     logging::core::get()->set_filter(

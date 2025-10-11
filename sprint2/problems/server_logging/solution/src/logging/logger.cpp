@@ -13,10 +13,7 @@ void ServerLogger::log_server_start(unsigned short port, const std::string& addr
     };
     
     BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, data)
-                           << "server started";
-
-    // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
-    std::cout << "Server has started"s << std::endl;
+                           << "Server has started";
 }
 
 void ServerLogger::log_server_exit(int exit_code, const std::string& exception_what) {

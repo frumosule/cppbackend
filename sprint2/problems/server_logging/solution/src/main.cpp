@@ -73,7 +73,6 @@ int main(int argc, const char* argv[]) {
             handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
         });
 
-
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
