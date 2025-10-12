@@ -27,7 +27,6 @@ void JsonFormatter::operator()(logging::record_view const& rec, logging::formatt
     }
     
     strm << json::serialize(log_entry) << "\n";
-    strm.flush();
 }
 
 void setup_logging() {

@@ -56,6 +56,9 @@ target_include_directories(game_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+target_include_directories(game_server PRIVATE CONAN_PKG::boost)
+ 
+
 target_link_libraries(game_server PRIVATE
     Threads::Threads
     Boost::system
