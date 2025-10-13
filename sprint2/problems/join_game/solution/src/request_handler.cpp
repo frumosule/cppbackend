@@ -125,7 +125,7 @@ StringResponse RequestHandler::HandleJoinGame(StringRequest&& req) {
         auto player = session_manager_.AddPlayer(model::Map::Id(map_id), user_name);
         
         // Формируем ответ - создаем объект правильно
-        json::object response_json;
+        json::object response_json;  // ← ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ ДОБАВЛЕНО ЗДЕСЬ
         response_json["authToken"] = player->GetAuthToken();
         response_json["playerId"] = player->GetId();
         
