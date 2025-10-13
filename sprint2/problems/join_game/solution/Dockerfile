@@ -1,4 +1,3 @@
-# Не просто создаём образ, но даём ему имя build
 FROM gcc:11.3 as build
 
 RUN apt update && \
@@ -8,12 +7,10 @@ RUN apt update && \
     && \
     pip3 install conan==1.*
 
-# Запуск conan как раньше
 COPY conanfile.txt /app/
 RUN mkdir /app/build && cd /app/build && \
     conan install .. --build=missing
 
-# Папка data больше не нужна
 COPY ./src /app/src
 COPY CMakeLists.txt /app/
 COPY ./static /app/static
@@ -22,17 +19,19 @@ RUN cd /app/build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
     cmake --build .
 
-# Второй контейнер в том же докерфайле
 FROM ubuntu:22.04 as run
 
-# Создадим пользователя www
 RUN groupadd -r www && useradd -r -g www www
 USER www
 
-# Скопируем приложение со сборочного контейнера в директорию /app.
-# Не забываем также папку data, она пригодится.
+# Копируем исполняемый файл (проверьте правильный путь)
 COPY --from=build /app/build/bin/game_server /app/
-COPY ./data /app/data
+# ИЛИ если в корне build:
+# COPY --from=build /app/build/game_server /app/
 
-# Запускаем игровой сервер
-ENTRYPOINT ["/app/game_server", "/app/data/config.json"]
+# Копируем данные и статику
+COPY ./data /app/data
+COPY --from=build /app/static /app/static
+
+# Исправленный entrypoint с тремя аргументами
+ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/app/static"]
