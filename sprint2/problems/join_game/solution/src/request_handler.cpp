@@ -60,12 +60,40 @@ StringResponse RequestHandler::HandleApiRequest(StringRequest&& req) {
     }
     
     // Новые endpoints для игры
-    if (req.method() == http::verb::post && target == "/api/v1/game/join") {
-        return HandleJoinGame(std::move(req));
+    if (target == "/api/v1/game/join") {
+        if (req.method() == http::verb::post) {
+            return HandleJoinGame(std::move(req));
+        } else {
+            // Для всех других методов возвращаем 405
+            StringResponse response(http::status::method_not_allowed, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::allow, "POST");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(json::object{
+                {"code", "invalidMethod"},
+                {"message", "Only POST method is expected"}
+            });
+            response.prepare_payload();
+            return response;
+        }
     }
     
-    if (req.method() == http::verb::get && target == "/api/v1/game/players") {
-        return HandleGetPlayers(std::move(req));
+    if (target == "/api/v1/game/players") {
+        if (req.method() == http::verb::get || req.method() == http::verb::head) {
+            return HandleGetPlayers(std::move(req));
+        } else {
+            // Для всех других методов возвращаем 405
+            StringResponse response(http::status::method_not_allowed, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::allow, "GET, HEAD");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(json::object{
+                {"code", "invalidMethod"},
+                {"message", "Invalid method"}
+            });
+            response.prepare_payload();
+            return response;
+        }
     }
     
     return MakeJsonResponse(http::status::bad_request, 
@@ -186,7 +214,13 @@ StringResponse RequestHandler::HandleGetPlayers(StringRequest&& req) {
         players_json[std::to_string(player_id)] = player_info;
     }
     
-    return MakeJsonResponse(http::status::ok, players_json, req);
+    // Для HEAD запроса не добавляем тело
+    auto response = MakeJsonResponse(http::status::ok, players_json, req);
+    if (req.method() == http::verb::head) {
+        response.body().clear();
+    }
+    
+    return response;
 }
 
 std::optional<std::string> RequestHandler::ExtractAuthToken(const StringRequest& req) {
@@ -344,9 +378,12 @@ StringResponse RequestHandler::MakeJsonResponse(http::status status, T&& data, c
     response.set(http::field::content_type, "application/json");
     response.set(http::field::cache_control, "no-cache");
     
-    std::string body = json::serialize(std::forward<T>(data));
-    response.body() = body;
-    response.set(http::field::content_length, std::to_string(body.size()));
+    // Для HEAD запросов не добавляем тело
+    if (req.method() != http::verb::head) {
+        std::string body = json::serialize(std::forward<T>(data));
+        response.body() = body;
+        response.set(http::field::content_length, std::to_string(body.size()));
+    }
     
     return response;
 }

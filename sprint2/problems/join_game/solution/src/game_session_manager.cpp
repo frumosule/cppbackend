@@ -19,6 +19,11 @@ std::string GameSessionManager::GenerateAuthToken() {
     uint64_t random_value = distribution_(generator_);
     std::stringstream ss;
     ss << std::hex << std::setfill('0') << std::setw(16) << random_value;
+    
+    // Генерируем второй случайный номер для полного 32-символьного токена
+    uint64_t random_value2 = distribution_(generator_);
+    ss << std::hex << std::setfill('0') << std::setw(16) << random_value2;
+    
     return ss.str();
 }
 
