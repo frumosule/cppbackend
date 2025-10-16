@@ -408,7 +408,14 @@ namespace http_handler
         }
 
         // Извлекаем токен (после "Bearer ")
-        return auth_value.substr(7);
+        std::string token = auth_value.substr(7);
+
+        // Проверяем, что токен не пустой
+        if (token.empty() || token.length() != 32) {
+            return std::nullopt;
+        }
+
+        return token;
     }
 
     StringResponse RequestHandler::HandleStaticRequest(StringRequest &&req)
