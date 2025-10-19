@@ -45,7 +45,7 @@ int main(int argc, const char* argv[]) {
         model::Game game = json_loader::LoadGame(argv[1]);
         
         // 2. Создаем менеджер игровых сессий
-        model::GameSessionManager session_manager;
+        model::GameSessionManager session_manager(game);
         
         // 3. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();

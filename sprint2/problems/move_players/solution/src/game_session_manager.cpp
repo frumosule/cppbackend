@@ -35,7 +35,7 @@ std::shared_ptr<Player> GameSessionManager::AddPlayer(const Map::Id& map_id, con
     auto [pos_x, pos_y] = GetRandomPositionOnRoad(map_id);
     
     std::string auth_token = GenerateAuthToken();
-    auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token, map_id);
+    auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token, map_id, pos_x, pos_y);
     
     session->AddPlayer(player);
     players_by_token_[auth_token] = player;
