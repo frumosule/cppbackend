@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <iostream>
 #include <mutex> 
+#include <algorithm>
+#include <limits>
 
 namespace model {
 
@@ -16,7 +18,6 @@ std::string GameSessionManager::GenerateAuthToken() {
     std::stringstream ss;
     ss << std::hex << std::setfill('0') << std::setw(16) << random_value;
     
-    // Генерируем второй случайный номер для полного 32-символьного токена
     uint64_t random_value2 = distribution_(generator_);
     ss << std::hex << std::setfill('0') << std::setw(16) << random_value2;
     
@@ -26,7 +27,6 @@ std::string GameSessionManager::GenerateAuthToken() {
 std::shared_ptr<Player> GameSessionManager::AddPlayer(const Map::Id& map_id, const std::string& player_name) {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    // Используем unsafe методы внутри
     auto session = FindSessionUnsafe(map_id);
     if (!session) {
         session = CreateSessionUnsafe(map_id);
@@ -50,7 +50,7 @@ std::shared_ptr<Player> GameSessionManager::FindPlayerByToken(const std::string&
 }
 
 std::shared_ptr<Player> GameSessionManager::FindPlayerById(Player::Id player_id) {
-    std::lock_guard<std::mutex> lock(mutex_);  // Защищаем доступ
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = players_by_id_.find(player_id);
     return it != players_by_id_.end() ? it->second : nullptr;
 }
@@ -63,7 +63,6 @@ bool GameSessionManager::UpdatePlayerAction(const std::string& auth_token, const
         return false;
     }
     
-    // Устанавливаем скорость
     if (move == "L") {
         player->SetSpeed(-dog_speed, 0.0);
     } else if (move == "R") {
@@ -82,24 +81,20 @@ bool GameSessionManager::UpdatePlayerAction(const std::string& auth_token, const
 std::unordered_map<Player::Id, std::shared_ptr<Player>> GameSessionManager::GetPlayersByToken(const std::string& auth_token) {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    // Находим игрока по токену
     auto current_player = FindPlayerByTokenUnsafe(auth_token);
     if (!current_player) {
         return {};
     }
     
-    // Находим сессию этого игрока
     auto session = FindSessionUnsafe(current_player->GetMapId());
     if (!session) {
         return {};
     }
     
-    // Возвращаем всех игроков в этой сессии
     return session->GetPlayers();
 }
 
 std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map::Id& map_id) {
-    // Теперь game_ доступен через ссылку в классе
     auto map = game_.FindMap(map_id);
     if (!map) {
         throw std::runtime_error("Map not found for getting random position");
@@ -115,27 +110,6 @@ std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map:
     const auto& start = first_road.GetStart();
     
     return {static_cast<double>(start.x), static_cast<double>(start.y)};
-    
-    // Выбираем случайную дорогу
-    //std::uniform_int_distribution<size_t> road_dist(0, roads.size() - 1);
-    //const auto& road = roads[road_dist(generator_)];
-    
-    // Выбираем случайную позицию на дороге
-    //const auto& start = road.GetStart();
-    
-    //if (road.IsHorizontal()) {
-        //const auto& end = road.GetEnd();
-        //std::uniform_real_distribution<double> pos_dist(static_cast<double>(start.x), static_cast<double>(end.x));
-        //double x = pos_dist(generator_);
-        //double y = static_cast<double>(start.y);
-        //return std::make_pair(x, y);
-    //} else {
-        //const auto& end = road.GetEnd();
-        //std::uniform_real_distribution<double> pos_dist(static_cast<double>(start.y), static_cast<double>(end.y));
-        //double y = pos_dist(generator_);
-        //double x = static_cast<double>(start.x);
-        //return std::make_pair(x, y);
-    //}
 }
 
 void GameSessionManager::UpdateGameState(int time_delta_ms) {
@@ -163,132 +137,56 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
             double target_x = current_x + speed_x * delta_time;
             double target_y = current_y + speed_y * delta_time;
             
+            // Находим ВСЕ дороги, на которых находится игрок
             std::vector<const Road*> possible_roads;
-        for (const auto& road : roads) {
-            if (IsPositionOnRoad(road, current_x, current_y)) {
-                possible_roads.push_back(&road);
+            for (const auto& road : roads) {
+                if (IsPositionOnRoad(road, current_x, current_y)) {
+                    possible_roads.push_back(&road);
+                }
             }
-        }
-        
-        if (possible_roads.empty()) {
-            player->SetSpeed(0.0, 0.0);
-            continue;
-        }
-        
-        // ОГРАНИЧИВАЕМ ДВИЖЕНИЕ С УЧЕТОМ ВСЕХ ВОЗМОЖНЫХ ДОРОГ
-        bool reached_boundary = false;
-        
-        if (speed_x != 0.0) {
-            auto [new_x, boundary] = CalculateHorizontalMovement(possible_roads, current_x, current_y, target_x, speed_x);
-            if (boundary) reached_boundary = true;
-            target_x = new_x;
-        } else if (speed_y != 0.0) {
-            auto [new_y, boundary] = CalculateVerticalMovement(possible_roads, current_x, current_y, target_y, speed_y);
-            if (boundary) reached_boundary = true;
-            target_y = new_y;
-        }
-        
-        if (reached_boundary) {
-            player->SetSpeed(0.0, 0.0);
-        }
+            
+            if (possible_roads.empty()) {
+                player->SetSpeed(0.0, 0.0);
+                continue;
+            }
+            
+            // Ограничиваем движение с учетом ВСЕХ возможных дорог
+            bool reached_boundary = false;
+            
+            if (speed_x != 0.0) {
+                auto [new_x, boundary] = CalculateHorizontalMovement(possible_roads, current_x, current_y, target_x, speed_x);
+                if (boundary) reached_boundary = true;
+                target_x = new_x;
+            } else if (speed_y != 0.0) {
+                auto [new_y, boundary] = CalculateVerticalMovement(possible_roads, current_x, current_y, target_y, speed_y);
+                if (boundary) reached_boundary = true;
+                target_y = new_y;
+            }
+            
+            // Проверяем, остался ли игрок на дороге после перемещения
+            bool still_on_road = false;
+            for (const auto& road : roads) {
+                if (IsPositionOnRoad(road, target_x, target_y)) {
+                    still_on_road = true;
+                    break;
+                }
+            }
+            
+            if (!still_on_road) {
+                // Если ушел с дороги, ищем ближайшую допустимую позицию
+                auto [valid_x, valid_y] = FindValidPosition(roads, current_x, current_y, target_x, target_y);
+                target_x = valid_x;
+                target_y = valid_y;
+                reached_boundary = true;
+            }
+            
+            if (reached_boundary) {
+                player->SetSpeed(0.0, 0.0);
+            }
             
             player->SetPosition(target_x, target_y);
         }
     }
-}
-
-const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<model::Road>& roads, double x, double y) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    for (const auto& road : roads) {
-        const auto& start = road.GetStart();
-        
-        if (road.IsHorizontal()) {
-            const auto& end = road.GetEnd();
-            int min_x = std::min(start.x, end.x);
-            int max_x = std::max(start.x, end.x);
-
-             bool in_road = (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
-                           y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH);
-            
-            // Проверяем, находится ли позиция в пределах дороги
-            if (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
-                y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH) {
-                return &road;
-            }
-        } else {
-            const auto& end = road.GetEnd();
-            int min_y = std::min(start.y, end.y);
-            int max_y = std::max(start.y, end.y);
-
-            bool in_road = (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
-                           y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH);
-            
-            // Проверяем, находится ли позиция в пределах дороги
-            if (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
-                y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH) {
-                return &road;
-            }
-        }
-    }
-    return nullptr;
-}
-
-double GameSessionManager::ClampHorizontalMovement(const model::Road& road, double current_x, double target_x, double speed_x) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    const auto& start = road.GetStart();
-    const auto& end = road.GetEnd();
-    
-    int min_x = std::min(start.x, end.x);
-    int max_x = std::max(start.x, end.x);
-    
-    double road_min_x = min_x - HALF_ROAD_WIDTH;
-    double road_max_x = max_x + HALF_ROAD_WIDTH;
-    
-    if (speed_x > 0) { // Движение вправо
-        return std::min(target_x, road_max_x);
-    } else { // Движение влево
-        return std::max(target_x, road_min_x);
-    }
-}
-
-double GameSessionManager::ClampVerticalMovement(const model::Road& road, double current_y, double target_y, double speed_y) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    const auto& start = road.GetStart();
-    const auto& end = road.GetEnd();
-    
-    int min_y = std::min(start.y, end.y);
-    int max_y = std::max(start.y, end.y);
-    
-    double road_min_y = min_y - HALF_ROAD_WIDTH;
-    double road_max_y = max_y + HALF_ROAD_WIDTH;
-    
-    if (speed_y > 0) { // Движение вниз
-        return std::min(target_y, road_max_y);
-    } else { // Движение вверх
-        return std::max(target_y, road_min_y);
-    }
-}
-
-std::shared_ptr<GameSession> GameSessionManager::FindSessionUnsafe(const Map::Id& map_id) {
-    auto it = sessions_.find(map_id);
-    return it != sessions_.end() ? it->second : nullptr;
-}
-
-std::shared_ptr<GameSession> GameSessionManager::CreateSessionUnsafe(const Map::Id& map_id) {
-    auto session = std::make_shared<GameSession>(map_id);
-    sessions_[map_id] = session;
-    return session;
-}
-
-std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string& auth_token) {
-    auto it = players_by_token_.find(auth_token);
-    return it != players_by_token_.end() ? it->second : nullptr;
 }
 
 bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) {
@@ -343,6 +241,12 @@ std::pair<double, bool> GameSessionManager::CalculateHorizontalMovement(
         }
     }
     
+    // Если не нашли подходящих дорог - останавливаемся
+    if (min_allowed_x == std::numeric_limits<double>::lowest() || 
+        max_allowed_x == std::numeric_limits<double>::max()) {
+        return {current_x, true};
+    }
+    
     // Ограничиваем движение
     if (speed_x > 0) { // Движение вправо
         if (target_x > max_allowed_x) {
@@ -388,6 +292,12 @@ std::pair<double, bool> GameSessionManager::CalculateVerticalMovement(
         }
     }
     
+    // Если не нашли подходящих дорог - останавливаемся
+    if (min_allowed_y == std::numeric_limits<double>::lowest() || 
+        max_allowed_y == std::numeric_limits<double>::max()) {
+        return {current_y, true};
+    }
+    
     // Ограничиваем движение
     if (speed_y > 0) { // Движение вниз
         if (target_y > max_allowed_y) {
@@ -404,5 +314,112 @@ std::pair<double, bool> GameSessionManager::CalculateVerticalMovement(
     return {new_y, boundary_reached};
 }
 
-} // namespace model
+std::pair<double, double> GameSessionManager::FindValidPosition(
+    const std::vector<Road>& roads, double current_x, double current_y,
+    double target_x, double target_y) {
+    
+    // Ищем позицию на линии между текущей и целевой, которая находится на дороге
+    double dx = target_x - current_x;
+    double dy = target_y - current_y;
+    double distance = std::hypot(dx, dy);
+    
+    if (distance == 0) {
+        return {current_x, current_y};
+    }
+    
+    // Делим путь на маленькие шаги и ищем максимально допустимое перемещение
+    const int STEPS = 100;
+    double step = distance / STEPS;
+    double best_x = current_x;
+    double best_y = current_y;
+    
+    for (int i = 1; i <= STEPS; ++i) {
+        double test_x = current_x + (dx * i * step) / distance;
+        double test_y = current_y + (dy * i * step) / distance;
+        
+        bool on_road = false;
+        for (const auto& road : roads) {
+            if (IsPositionOnRoad(road, test_x, test_y)) {
+                on_road = true;
+                break;
+            }
+        }
+        
+        if (on_road) {
+            best_x = test_x;
+            best_y = test_y;
+        } else {
+            break;
+        }
+    }
+    
+    return {best_x, best_y};
+}
 
+// Старые методы для обратной совместимости
+const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<model::Road>& roads, double x, double y) {
+    for (const auto& road : roads) {
+        if (IsPositionOnRoad(road, x, y)) {
+            return &road;
+        }
+    }
+    return nullptr;
+}
+
+double GameSessionManager::ClampHorizontalMovement(const model::Road& road, double current_x, double target_x, double speed_x) {
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+    
+    const auto& start = road.GetStart();
+    const auto& end = road.GetEnd();
+    
+    int min_x = std::min(start.x, end.x);
+    int max_x = std::max(start.x, end.x);
+    
+    double road_min_x = min_x - HALF_ROAD_WIDTH;
+    double road_max_x = max_x + HALF_ROAD_WIDTH;
+    
+    if (speed_x > 0) {
+        return std::min(target_x, road_max_x);
+    } else {
+        return std::max(target_x, road_min_x);
+    }
+}
+
+double GameSessionManager::ClampVerticalMovement(const model::Road& road, double current_y, double target_y, double speed_y) {
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+    
+    const auto& start = road.GetStart();
+    const auto& end = road.GetEnd();
+    
+    int min_y = std::min(start.y, end.y);
+    int max_y = std::max(start.y, end.y);
+    
+    double road_min_y = min_y - HALF_ROAD_WIDTH;
+    double road_max_y = max_y + HALF_ROAD_WIDTH;
+    
+    if (speed_y > 0) {
+        return std::min(target_y, road_max_y);
+    } else {
+        return std::max(target_y, road_min_y);
+    }
+}
+
+std::shared_ptr<GameSession> GameSessionManager::FindSessionUnsafe(const Map::Id& map_id) {
+    auto it = sessions_.find(map_id);
+    return it != sessions_.end() ? it->second : nullptr;
+}
+
+std::shared_ptr<GameSession> GameSessionManager::CreateSessionUnsafe(const Map::Id& map_id) {
+    auto session = std::make_shared<GameSession>(map_id);
+    sessions_[map_id] = session;
+    return session;
+}
+
+std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string& auth_token) {
+    auto it = players_by_token_.find(auth_token);
+    return it != players_by_token_.end() ? it->second : nullptr;
+}
+
+} // namespace model

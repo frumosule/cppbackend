@@ -6,6 +6,7 @@
 #include <memory>
 #include <random>
 #include <mutex>
+#include <vector>
 
 namespace model
 {
@@ -44,16 +45,23 @@ namespace model
         std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string &auth_token);
         std::string GenerateAuthToken();
         std::pair<double, double> GetRandomPositionOnRoad(const Map::Id &map_id);
+        
+        // Методы для работы с дорогами и перемещениями
+        bool IsPositionOnRoad(const Road &road, double x, double y);
+        std::pair<double, bool> CalculateHorizontalMovement(const std::vector<const Road *> &roads,
+                                                           double current_x, double current_y,
+                                                           double target_x, double speed_x);
+        std::pair<double, bool> CalculateVerticalMovement(const std::vector<const Road *> &roads,
+                                                         double current_x, double current_y,
+                                                         double target_y, double speed_y);
+        std::pair<double, double> FindValidPosition(const std::vector<Road> &roads,
+                                                   double current_x, double current_y,
+                                                   double target_x, double target_y);
+        
+        // Старые методы для обратной совместимости
         const model::Road *FindRoadForPosition(const std::vector<model::Road> &roads, double x, double y);
         double ClampHorizontalMovement(const model::Road &road, double current_x, double target_x, double speed_x);
         double ClampVerticalMovement(const model::Road &road, double current_y, double target_y, double speed_y);
-        bool IsPositionOnRoad(const Road &road, double x, double y);
-        std::pair<double, bool> CalculateHorizontalMovement(const std::vector<const Road *> &roads,
-                                                            double current_x, double current_y,
-                                                            double target_x, double speed_x);
-        std::pair<double, bool> CalculateVerticalMovement(const std::vector<const Road *> &roads,
-                                                          double current_x, double current_y,
-                                                          double target_y, double speed_y);
     };
 
 } // namespace model
