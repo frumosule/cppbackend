@@ -114,9 +114,11 @@ std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map:
 }
 
 void GameSessionManager::UpdateGameState(int time_delta_ms) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);    
     
     double delta_time = time_delta_ms / 1000.0;
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
     
     for (auto& [map_id, session] : sessions_) {
         auto map = game_.FindMap(map_id);
@@ -134,43 +136,117 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
             double speed_x = player->GetSpeedX();
             double speed_y = player->GetSpeedY();
             
-            // Вычисляем целевую позицию
             double target_x = current_x + speed_x * delta_time;
             double target_y = current_y + speed_y * delta_time;
             
-            // Находим ВСЕ доступные дороги из текущей позиции
-            auto connected_roads = FindConnectedRoads(roads, current_x, current_y);
+            // Находим дорогу, на которой находится игрок СЕЙЧАС
+            const Road* current_road = nullptr;
+            for (const auto& road : roads) {
+                if (IsPositionOnRoad(road, current_x, current_y)) {
+                    current_road = &road;
+                    break;
+                }
+            }
             
-            if (connected_roads.empty()) {
-                // Игрок сошел с дороги - останавливаем
+            if (!current_road) {
                 player->SetSpeed(0.0, 0.0);
                 continue;
             }
             
-            // ОГРАНИЧИВАЕМ ДВИЖЕНИЕ
-            bool boundary_reached = false;
+            // Проверяем можно ли двигаться ВДОЛЬ текущей дороги
+            bool can_move = false;
             
-            if (speed_x != 0.0) {
-                auto [new_x, boundary] = CalculateMovementWithConnections(
-                    connected_roads, current_x, current_y, target_x, target_y, speed_x, speed_y, true);
-                target_x = new_x;
-                if (boundary) boundary_reached = true;
+            if (current_road->IsHorizontal()) {
+                // Горизонтальная дорога - можем двигаться по X
+                if (speed_x != 0.0) {
+                    can_move = true;
+                    // Ограничиваем движение границами дороги
+                    const auto& start = current_road->GetStart();
+                    const auto& end = current_road->GetEnd();
+                    int min_x = std::min(start.x, end.x);
+                    int max_x = std::max(start.x, end.x);
+                    const double ROAD_WIDTH = 0.8;
+                    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+                    
+                    if (speed_x > 0) {
+                        target_x = std::min(target_x, static_cast<double>(max_x) + HALF_ROAD_WIDTH);
+                    } else {
+                        target_x = std::max(target_x, static_cast<double>(min_x) - HALF_ROAD_WIDTH);
+                    }
+                }
+                // Для вертикального движения на горизонтальной дороге - разрешаем в пределах ширины дороги
+                if (speed_y != 0.0) {
+                    can_move = true;
+                    const auto& start = current_road->GetStart();
+                    
+                    
+                    if (speed_y > 0) {
+                        target_y = std::min(target_y, start.y + HALF_ROAD_WIDTH);
+                    } else {
+                        target_y = std::max(target_y, start.y - HALF_ROAD_WIDTH);
+                    }
+                }
+            } else {
+                // Вертикальная дорога - можем двигаться по Y
+                if (speed_y != 0.0) {
+                    can_move = true;
+                    // Ограничиваем движение границами дороги
+                    const auto& start = current_road->GetStart();
+                    const auto& end = current_road->GetEnd();
+                    int min_y = std::min(start.y, end.y);
+                    int max_y = std::max(start.y, end.y);
+                    const double ROAD_WIDTH = 0.8;
+                    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+                    
+                    if (speed_y > 0) {
+                        target_y = std::min(target_y, static_cast<double>(max_y) + HALF_ROAD_WIDTH);
+                    } else {
+                        target_y = std::max(target_y, static_cast<double>(min_y) - HALF_ROAD_WIDTH);
+                    }
+                }
+                // Для горизонтального движения на вертикальной дороге - разрешаем в пределах ширины дороги
+                if (speed_x != 0.0) {
+                    can_move = true;
+                    const auto& start = current_road->GetStart();
+                    const double ROAD_WIDTH = 0.8;
+                    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+                    
+                    if (speed_x > 0) {
+                        target_x = std::min(target_x, start.x + HALF_ROAD_WIDTH);
+                    } else {
+                        target_x = std::max(target_x, start.x - HALF_ROAD_WIDTH);
+                    }
+                }
             }
             
-            if (speed_y != 0.0 && !boundary_reached) {
-                auto [new_y, boundary] = CalculateMovementWithConnections(
-                    connected_roads, current_x, current_y, target_x, target_y, speed_x, speed_y, false);
-                target_y = new_y;
-                if (boundary) boundary_reached = true;
-            }
-            
-            // Если достигли границы, останавливаемся
-            if (boundary_reached) {
+            if (can_move) {
+                player->SetPosition(target_x, target_y);
+                std::cout << "MOVED to (" << target_x << "," << target_y << ")" << std::endl;
+                
+                // Проверяем достигли ли границы
+                bool at_boundary = false;
+                if (current_road->IsHorizontal()) {
+                    if ((speed_x > 0 && std::abs(target_x - (current_road->GetEnd().x + HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_x < 0 && std::abs(target_x - (current_road->GetStart().x - HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_y > 0 && std::abs(target_y - (current_road->GetStart().y + HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_y < 0 && std::abs(target_y - (current_road->GetStart().y - HALF_ROAD_WIDTH)) < 1e-6)) {
+                        at_boundary = true;
+                    }
+                } else {
+                    if ((speed_y > 0 && std::abs(target_y - (current_road->GetEnd().y + HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_y < 0 && std::abs(target_y - (current_road->GetStart().y - HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_x > 0 && std::abs(target_x - (current_road->GetStart().x + HALF_ROAD_WIDTH)) < 1e-6) ||
+                        (speed_x < 0 && std::abs(target_x - (current_road->GetStart().x - HALF_ROAD_WIDTH)) < 1e-6)) {
+                        at_boundary = true;
+                    }
+                }
+                
+                if (at_boundary) {
+                    player->SetSpeed(0.0, 0.0);
+                }
+            } else {
                 player->SetSpeed(0.0, 0.0);
             }
-            
-            // Устанавливаем новую позицию (ограниченную)
-            player->SetPosition(target_x, target_y);
         }
     }
 }
@@ -178,32 +254,21 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
 std::vector<const Road*> GameSessionManager::FindConnectedRoads(
     const std::vector<Road>& roads, double x, double y) {
     
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
     std::vector<const Road*> connected_roads;
     
-    // Находим дороги, на которых находится игрок
-    std::vector<const Road*> current_roads;
+    // 1. Находим дороги под игроком
     for (const auto& road : roads) {
         if (IsPositionOnRoad(road, x, y)) {
-            current_roads.push_back(&road);
+            connected_roads.push_back(&road);
         }
     }
     
-    // Если игрок не на дороге - возвращаем пустой список
-    if (current_roads.empty()) {
-        return connected_roads;
-    }
-    
-    // Добавляем все соединенные дороги
-    for (const auto& road : current_roads) {
-        connected_roads.push_back(road);
-        
-        // Ищем соединенные дороги
+    // 2. Находим дороги, соединенные с найденными дорогами
+    for (const auto& current_road : connected_roads) {
         for (const auto& other_road : roads) {
-            if (&other_road == road) continue;
+            if (&other_road == current_road) continue;
             
-            if (AreRoadsConnected(*road, other_road)) {
+            if (AreRoadsConnected(*current_road, other_road)) {
                 // Проверяем, что дорога еще не добавлена
                 if (std::find(connected_roads.begin(), connected_roads.end(), &other_road) == connected_roads.end()) {
                     connected_roads.push_back(&other_road);
@@ -216,12 +281,11 @@ std::vector<const Road*> GameSessionManager::FindConnectedRoads(
 }
 
 bool GameSessionManager::AreRoadsConnected(const Road& road1, const Road& road2) {
-    const double CONNECTION_THRESHOLD = 0.4; // Половина ширины дороги
+    const double CONNECTION_THRESHOLD = 0.4;
     
     auto endpoints1 = GetRoadEndpoints(road1);
     auto endpoints2 = GetRoadEndpoints(road2);
     
-    // Проверяем все комбинации конечных точек
     for (const auto& point1 : endpoints1) {
         for (const auto& point2 : endpoints2) {
             double distance = std::hypot(point1.first - point2.first, point1.second - point2.second);
@@ -251,102 +315,6 @@ std::vector<std::pair<double, double>> GameSessionManager::GetRoadEndpoints(cons
     return endpoints;
 }
 
-std::pair<double, bool> GameSessionManager::CalculateMovementWithConnections(
-    const std::vector<const Road*>& connected_roads, double current_x, double current_y,
-    double target_x, double target_y, double speed_x, double speed_y, bool is_horizontal) {
-    
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    bool boundary_reached = false;
-    double new_pos = is_horizontal ? target_x : target_y;
-    
-    if (is_horizontal) {
-        // Горизонтальное движение
-        double min_allowed_x = std::numeric_limits<double>::lowest();
-        double max_allowed_x = std::numeric_limits<double>::max();
-        
-        bool found_valid_road = false;
-        
-        for (const auto& road : connected_roads) {
-            if (road->IsHorizontal()) {
-                const auto& start = road->GetStart();
-                const auto& end = road->GetEnd();
-                int min_x = std::min(start.x, end.x);
-                int max_x = std::max(start.x, end.x);
-                
-                // Проверяем, что игрок может двигаться по Y на этой дороге
-                if (current_y >= start.y - HALF_ROAD_WIDTH && current_y <= start.y + HALF_ROAD_WIDTH) {
-                    found_valid_road = true;
-                    min_allowed_x = std::max(min_allowed_x, static_cast<double>(min_x) - HALF_ROAD_WIDTH);
-                    max_allowed_x = std::min(max_allowed_x, static_cast<double>(max_x) + HALF_ROAD_WIDTH);
-                }
-            }
-        }
-        
-        if (found_valid_road) {
-            // Ограничиваем движение
-            if (speed_x > 0) {
-                if (target_x > max_allowed_x) {
-                    new_pos = max_allowed_x;
-                    boundary_reached = true;
-                }
-            } else if (speed_x < 0) {
-                if (target_x < min_allowed_x) {
-                    new_pos = min_allowed_x;
-                    boundary_reached = true;
-                }
-            }
-        } else {
-            // Не нашли подходящей дороги - останавливаемся
-            boundary_reached = true;
-            new_pos = current_x;
-        }
-        
-    } else {
-        // Вертикальное движение
-        double min_allowed_y = std::numeric_limits<double>::lowest();
-        double max_allowed_y = std::numeric_limits<double>::max();
-        
-        bool found_valid_road = false;
-        
-        for (const auto& road : connected_roads) {
-            if (!road->IsHorizontal()) {
-                const auto& start = road->GetStart();
-                const auto& end = road->GetEnd();
-                int min_y = std::min(start.y, end.y);
-                int max_y = std::max(start.y, end.y);
-                
-                // Проверяем, что игрок может двигаться по X на этой дороге
-                if (current_x >= start.x - HALF_ROAD_WIDTH && current_x <= start.x + HALF_ROAD_WIDTH) {
-                    found_valid_road = true;
-                    min_allowed_y = std::max(min_allowed_y, static_cast<double>(min_y) - HALF_ROAD_WIDTH);
-                    max_allowed_y = std::min(max_allowed_y, static_cast<double>(max_y) + HALF_ROAD_WIDTH);
-                }
-            }
-        }
-        
-        if (found_valid_road) {
-            if (speed_y > 0) {
-                if (target_y > max_allowed_y) {
-                    new_pos = max_allowed_y;
-                    boundary_reached = true;
-                }
-            } else if (speed_y < 0) {
-                if (target_y < min_allowed_y) {
-                    new_pos = min_allowed_y;
-                    boundary_reached = true;
-                }
-            }
-        } else {
-            boundary_reached = true;
-            new_pos = current_y;
-        }
-    }
-    
-    return {new_pos, boundary_reached};
-}
-
 bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) {
     const double ROAD_WIDTH = 0.8;
     const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
@@ -358,11 +326,18 @@ bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) 
         int min_x = std::min(start.x, end.x);
         int max_x = std::max(start.x, end.x);
 
-        // Проверяем что позиция находится в пределах дороги
         bool within_x = (x >= min_x - HALF_ROAD_WIDTH) && (x <= max_x + HALF_ROAD_WIDTH);
         bool within_y = (y >= start.y - HALF_ROAD_WIDTH) && (y <= start.y + HALF_ROAD_WIDTH);
         
-        return within_x && within_y;
+        bool result = within_x && within_y;
+        
+        // ОТЛАДОЧНЫЙ ВЫВОД
+        if (result) {
+            std::cout << "Position (" << x << "," << y << ") is on horizontal road: " 
+                      << min_x << "," << start.y << " to " << max_x << "," << start.y << std::endl;
+        }
+        
+        return result;
     } else {
         const auto& end = road.GetEnd();
         int min_y = std::min(start.y, end.y);
@@ -371,7 +346,15 @@ bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) 
         bool within_x = (x >= start.x - HALF_ROAD_WIDTH) && (x <= start.x + HALF_ROAD_WIDTH);
         bool within_y = (y >= min_y - HALF_ROAD_WIDTH) && (y <= max_y + HALF_ROAD_WIDTH);
         
-        return within_x && within_y;
+        bool result = within_x && within_y;
+        
+        // ОТЛАДОЧНЫЙ ВЫВОД
+        if (result) {
+            std::cout << "Position (" << x << "," << y << ") is on vertical road: " 
+                      << start.x << "," << min_y << " to " << start.x << "," << max_y << std::endl;
+        }
+        
+        return result;
     }
 }
 
