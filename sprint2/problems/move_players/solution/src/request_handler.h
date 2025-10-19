@@ -45,6 +45,7 @@ private:
     StringResponse HandleJoinGame(StringRequest&& req);
     StringResponse HandleGetPlayers(StringRequest&& req);
     StringResponse HandlePlayerAction(StringRequest&& req);
+    StringResponse HandleGameState(StringRequest&& req);
     
     // Вспомогательные методы
     std::string UrlDecode(const std::string& url);

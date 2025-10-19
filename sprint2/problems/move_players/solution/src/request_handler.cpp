@@ -108,6 +108,27 @@ namespace http_handler
             }
         }
 
+        if (target == "/api/v1/game/state")
+        {
+            if (req.method() == http::verb::get || req.method() == http::verb::head)
+            {
+                return HandleGameState(std::move(req));
+            }
+            else
+            {
+                // Для всех других методов возвращаем 405
+                StringResponse response(http::status::method_not_allowed, req.version());
+                response.set(http::field::content_type, "application/json");
+                response.set(http::field::allow, "GET, HEAD");
+                response.set(http::field::cache_control, "no-cache");
+                response.body() = json::serialize(json::object{
+                    {"code", "invalidMethod"},
+                    {"message", "Invalid method"}});
+                response.prepare_payload();
+                return response;
+            }
+        }
+
         if (target == "/api/v1/game/player/action")
         {
             if (req.method() == http::verb::post)
@@ -451,6 +472,75 @@ namespace http_handler
         }
 
         return MakeStaticFileResponse(file_path, req);
+    }
+
+    StringResponse RequestHandler::HandleGameState(StringRequest &&req)
+    {
+        // Проверяем метод
+        if (req.method() != http::verb::get && req.method() != http::verb::head)
+        {
+            StringResponse response(http::status::method_not_allowed, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::allow, "GET, HEAD");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(json::object{
+                {"code", "invalidMethod"},
+                {"message", "Invalid method"}});
+            response.prepare_payload();
+            return response;
+        }
+
+        // Извлекаем токен
+        auto auth_token = ExtractAuthToken(req);
+        if (!auth_token)
+        {
+            return MakeJsonResponse(http::status::unauthorized,
+                                    json::object{{"code", "invalidToken"}, {"message", "Authorization header is required"}}, req);
+        }
+
+        // Получаем игроков через GameSessionManager
+        auto players = session_manager_.GetPlayersByToken(*auth_token);
+        if (players.empty())
+        {
+            return MakeJsonResponse(http::status::unauthorized,
+                                    json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
+        }
+
+        // Формируем JSON ответ
+        json::object players_json;
+        for (const auto &[player_id, player] : players)
+        {
+            json::object player_info;
+
+            // Позиция
+            json::array pos_array;
+            pos_array.push_back(player->GetPosX());
+            pos_array.push_back(player->GetPosY());
+            player_info["pos"] = pos_array;
+
+            // Скорость
+            json::array speed_array;
+            speed_array.push_back(player->GetSpeedX());
+            speed_array.push_back(player->GetSpeedY());
+            player_info["speed"] = speed_array;
+
+            // Направление
+            player_info["dir"] = std::string(1, player->GetDirectionChar());
+
+            players_json[std::to_string(player_id)] = player_info;
+        }
+
+        json::object response_json;
+        response_json["players"] = players_json;
+
+        // Для HEAD запроса не добавляем тело
+        auto response = MakeJsonResponse(http::status::ok, response_json, req);
+        if (req.method() == http::verb::head)
+        {
+            response.body().clear();
+        }
+
+        return response;
     }
 
     // Остальные методы остаются без изменений...
