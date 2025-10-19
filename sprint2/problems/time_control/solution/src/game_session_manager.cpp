@@ -163,34 +163,34 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
             double target_x = current_x + speed_x * delta_time;
             double target_y = current_y + speed_y * delta_time;
             
-            // Находим дорогу, на которой находится игрок
-            auto current_road = FindRoadForPosition(roads, current_x, current_y);
-            if (!current_road) {
-                player->SetSpeed(0.0, 0.0);
-                continue;
+            std::vector<const Road*> possible_roads;
+        for (const auto& road : roads) {
+            if (IsPositionOnRoad(road, current_x, current_y)) {
+                possible_roads.push_back(&road);
             }
-            
-            // Проверяем движение и ограничиваем границами
-            bool reached_boundary = false;
-            
-            if (speed_x != 0.0) {
-                double clamped_x = ClampHorizontalMovement(*current_road, current_x, target_x, speed_x);
-                if (clamped_x != target_x) {
-                    reached_boundary = true;
-                }
-                target_x = clamped_x;
-            } else if (speed_y != 0.0) {
-                double clamped_y = ClampVerticalMovement(*current_road, current_y, target_y, speed_y);
-                if (clamped_y != target_y) {
-                    reached_boundary = true;
-                }
-                target_y = clamped_y;
-            }
-            
-            // ЕСЛИ ДОСТИГЛИ ГРАНИЦЫ - ОСТАНАВЛИВАЕМСЯ
-            if (reached_boundary) {
-                player->SetSpeed(0.0, 0.0);
-            }
+        }
+        
+        if (possible_roads.empty()) {
+            player->SetSpeed(0.0, 0.0);
+            continue;
+        }
+        
+        // ОГРАНИЧИВАЕМ ДВИЖЕНИЕ С УЧЕТОМ ВСЕХ ВОЗМОЖНЫХ ДОРОГ
+        bool reached_boundary = false;
+        
+        if (speed_x != 0.0) {
+            auto [new_x, boundary] = CalculateHorizontalMovement(possible_roads, current_x, current_y, target_x, speed_x);
+            if (boundary) reached_boundary = true;
+            target_x = new_x;
+        } else if (speed_y != 0.0) {
+            auto [new_y, boundary] = CalculateVerticalMovement(possible_roads, current_x, current_y, target_y, speed_y);
+            if (boundary) reached_boundary = true;
+            target_y = new_y;
+        }
+        
+        if (reached_boundary) {
+            player->SetSpeed(0.0, 0.0);
+        }
             
             player->SetPosition(target_x, target_y);
         }
@@ -289,6 +289,119 @@ std::shared_ptr<GameSession> GameSessionManager::CreateSessionUnsafe(const Map::
 std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string& auth_token) {
     auto it = players_by_token_.find(auth_token);
     return it != players_by_token_.end() ? it->second : nullptr;
+}
+
+bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) {
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+    
+    const auto& start = road.GetStart();
+    
+    if (road.IsHorizontal()) {
+        const auto& end = road.GetEnd();
+        int min_x = std::min(start.x, end.x);
+        int max_x = std::max(start.x, end.x);
+
+        return (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
+                y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH);
+    } else {
+        const auto& end = road.GetEnd();
+        int min_y = std::min(start.y, end.y);
+        int max_y = std::max(start.y, end.y);
+
+        return (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
+                y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH);
+    }
+}
+
+std::pair<double, bool> GameSessionManager::CalculateHorizontalMovement(
+    const std::vector<const Road*>& roads, double current_x, double current_y, 
+    double target_x, double speed_x) {
+    
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+    
+    bool boundary_reached = false;
+    double new_x = target_x;
+    
+    // Находим минимальное и максимальное возможное X среди всех дорог
+    double min_allowed_x = std::numeric_limits<double>::lowest();
+    double max_allowed_x = std::numeric_limits<double>::max();
+    
+    for (const auto& road : roads) {
+        if (road->IsHorizontal()) {
+            const auto& start = road->GetStart();
+            const auto& end = road->GetEnd();
+            int min_x = std::min(start.x, end.x);
+            int max_x = std::max(start.x, end.x);
+            
+            // Проверяем, что игрок может двигаться по этой дороге по Y
+            if (current_y >= start.y - HALF_ROAD_WIDTH && current_y <= start.y + HALF_ROAD_WIDTH) {
+                min_allowed_x = std::max(min_allowed_x, static_cast<double>(min_x) - HALF_ROAD_WIDTH);
+                max_allowed_x = std::min(max_allowed_x, static_cast<double>(max_x) + HALF_ROAD_WIDTH);
+            }
+        }
+    }
+    
+    // Ограничиваем движение
+    if (speed_x > 0) { // Движение вправо
+        if (target_x > max_allowed_x) {
+            new_x = max_allowed_x;
+            boundary_reached = true;
+        }
+    } else { // Движение влево
+        if (target_x < min_allowed_x) {
+            new_x = min_allowed_x;
+            boundary_reached = true;
+        }
+    }
+    
+    return {new_x, boundary_reached};
+}
+
+std::pair<double, bool> GameSessionManager::CalculateVerticalMovement(
+    const std::vector<const Road*>& roads, double current_x, double current_y, 
+    double target_y, double speed_y) {
+    
+    const double ROAD_WIDTH = 0.8;
+    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
+    
+    bool boundary_reached = false;
+    double new_y = target_y;
+    
+    // Находим минимальное и максимальное возможное Y среди всех дорог
+    double min_allowed_y = std::numeric_limits<double>::lowest();
+    double max_allowed_y = std::numeric_limits<double>::max();
+    
+    for (const auto& road : roads) {
+        if (!road->IsHorizontal()) {
+            const auto& start = road->GetStart();
+            const auto& end = road->GetEnd();
+            int min_y = std::min(start.y, end.y);
+            int max_y = std::max(start.y, end.y);
+            
+            // Проверяем, что игрок может двигаться по этой дороге по X
+            if (current_x >= start.x - HALF_ROAD_WIDTH && current_x <= start.x + HALF_ROAD_WIDTH) {
+                min_allowed_y = std::max(min_allowed_y, static_cast<double>(min_y) - HALF_ROAD_WIDTH);
+                max_allowed_y = std::min(max_allowed_y, static_cast<double>(max_y) + HALF_ROAD_WIDTH);
+            }
+        }
+    }
+    
+    // Ограничиваем движение
+    if (speed_y > 0) { // Движение вниз
+        if (target_y > max_allowed_y) {
+            new_y = max_allowed_y;
+            boundary_reached = true;
+        }
+    } else { // Движение вверх
+        if (target_y < min_allowed_y) {
+            new_y = min_allowed_y;
+            boundary_reached = true;
+        }
+    }
+    
+    return {new_y, boundary_reached};
 }
 
 } // namespace model
