@@ -141,7 +141,7 @@ std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map:
 void GameSessionManager::UpdateGameState(int time_delta_ms) {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    double delta_time = time_delta_ms / 1000.0; // Конвертируем в секунды
+    double delta_time = time_delta_ms / 1000.0;
     
     for (auto& [map_id, session] : sessions_) {
         auto map = game_.FindMap(map_id);
@@ -151,7 +151,7 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
         
         for (auto& [player_id, player] : session->GetPlayers()) {
             if (player->GetSpeedX() == 0.0 && player->GetSpeedY() == 0.0) {
-                continue; // Игрок не движется
+                continue;
             }
             
             double current_x = player->GetPosX();
@@ -166,31 +166,30 @@ void GameSessionManager::UpdateGameState(int time_delta_ms) {
             // Находим дорогу, на которой находится игрок
             auto current_road = FindRoadForPosition(roads, current_x, current_y);
             if (!current_road) {
-                // Игрок не на дороге - останавливаем
                 player->SetSpeed(0.0, 0.0);
                 continue;
             }
             
-            // Проверяем движение по текущей дороге
-            if (speed_x != 0.0) { // Горизонтальное движение
-                target_x = ClampHorizontalMovement(*current_road, current_x, target_x, speed_x);
-            } else if (speed_y != 0.0) { // Вертикальное движение
-                target_y = ClampVerticalMovement(*current_road, current_y, target_y, speed_y);
+            // Проверяем движение и ограничиваем границами
+            bool reached_boundary = false;
+            
+            if (speed_x != 0.0) {
+                double clamped_x = ClampHorizontalMovement(*current_road, current_x, target_x, speed_x);
+                if (clamped_x != target_x) {
+                    reached_boundary = true;
+                }
+                target_x = clamped_x;
+            } else if (speed_y != 0.0) {
+                double clamped_y = ClampVerticalMovement(*current_road, current_y, target_y, speed_y);
+                if (clamped_y != target_y) {
+                    reached_boundary = true;
+                }
+                target_y = clamped_y;
             }
             
-            // Проверяем, достигли ли мы границы дороги
-            bool reached_boundary = false;
-            if (speed_x > 0 && target_x <= current_x) reached_boundary = true;
-            if (speed_x < 0 && target_x >= current_x) reached_boundary = true;
-            if (speed_y > 0 && target_y <= current_y) reached_boundary = true;
-            if (speed_y < 0 && target_y >= current_y) reached_boundary = true;
-            
+            // ЕСЛИ ДОСТИГЛИ ГРАНИЦЫ - ОСТАНАВЛИВАЕМСЯ
             if (reached_boundary) {
-                // Достигли границы - останавливаемся
                 player->SetSpeed(0.0, 0.0);
-                // Оставляем позицию на границе
-                target_x = current_x;
-                target_y = current_y;
             }
             
             player->SetPosition(target_x, target_y);
@@ -209,6 +208,9 @@ const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<mod
             const auto& end = road.GetEnd();
             int min_x = std::min(start.x, end.x);
             int max_x = std::max(start.x, end.x);
+
+             bool in_road = (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
+                           y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH);
             
             // Проверяем, находится ли позиция в пределах дороги
             if (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
@@ -219,6 +221,9 @@ const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<mod
             const auto& end = road.GetEnd();
             int min_y = std::min(start.y, end.y);
             int max_y = std::max(start.y, end.y);
+
+            bool in_road = (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
+                           y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH);
             
             // Проверяем, находится ли позиция в пределах дороги
             if (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
@@ -227,7 +232,6 @@ const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<mod
             }
         }
     }
-    
     return nullptr;
 }
 

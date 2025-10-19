@@ -470,6 +470,13 @@ namespace http_handler
                                         json::object{{"code", "invalidArgument"}, {"message", "Failed to parse tick request JSON"}}, req);
             }
 
+            auto &time_delta_value = obj.at("timeDelta");
+            if (!time_delta_value.is_int64())
+            {
+                return MakeJsonResponse(http::status::bad_request,
+                                        json::object{{"code", "invalidArgument"}, {"message", "Failed to parse tick request JSON"}}, req);
+            }
+
             int time_delta = json::value_to<int>(obj.at("timeDelta"));
 
             // Проверяем, что timeDelta неотрицательный
