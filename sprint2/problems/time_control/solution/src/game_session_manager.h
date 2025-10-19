@@ -46,8 +46,18 @@ namespace model
         std::string GenerateAuthToken();
         std::pair<double, double> GetRandomPositionOnRoad(const Map::Id &map_id);
         
-        // Методы для работы с дорогами и перемещениями
+        // Основные методы для работы с дорогами и перемещениями
         bool IsPositionOnRoad(const Road &road, double x, double y);
+        std::vector<const Road*> FindConnectedRoads(const std::vector<Road>& roads, double x, double y);
+        bool AreRoadsConnected(const Road& road1, const Road& road2);
+        std::vector<std::pair<double, double>> GetRoadEndpoints(const Road& road);
+        std::pair<double, bool> CalculateMovementWithConnections(const std::vector<const Road*>& connected_roads, 
+                                                                double current_x, double current_y,
+                                                                double target_x, double target_y, 
+                                                                double speed_x, double speed_y, bool is_horizontal);
+        
+        // Старые методы для обратной совместимости
+        const model::Road *FindRoadForPosition(const std::vector<model::Road> &roads, double x, double y);
         std::pair<double, bool> CalculateHorizontalMovement(const std::vector<const Road *> &roads,
                                                            double current_x, double current_y,
                                                            double target_x, double speed_x);
@@ -57,9 +67,6 @@ namespace model
         std::pair<double, double> FindValidPosition(const std::vector<Road> &roads,
                                                    double current_x, double current_y,
                                                    double target_x, double target_y);
-        
-        // Старые методы для обратной совместимости
-        const model::Road *FindRoadForPosition(const std::vector<model::Road> &roads, double x, double y);
         double ClampHorizontalMovement(const model::Road &road, double current_x, double target_x, double speed_x);
         double ClampVerticalMovement(const model::Road &road, double current_y, double target_y, double speed_y);
     };
