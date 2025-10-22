@@ -2,11 +2,11 @@
 
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include "model.h"
 
 namespace model {
 
-// Перечисление для направления
 enum class Direction {
     NORTH = 'U',
     SOUTH = 'D', 
@@ -28,7 +28,6 @@ public:
     const std::string& GetAuthToken() const noexcept { return auth_token_; }
     const Map::Id& GetMapId() const noexcept { return map_id_; }
 
-    // Методы для работы с позицией
     double GetPosX() const noexcept { return pos_x_; }
     double GetPosY() const noexcept { return pos_y_; }
     void SetPosition(double x, double y) {
@@ -36,17 +35,11 @@ public:
         pos_y_ = y;
     }
 
-    // Методы для работы со скоростью
     double GetSpeedX() const noexcept { return speed_x_; }
     double GetSpeedY() const noexcept { return speed_y_; }
     void SetSpeed(double speed_x, double speed_y) {
         speed_x_ = speed_x;
         speed_y_ = speed_y;
-
-        if (speed_x > 0) direction_ = Direction::EAST;
-        else if (speed_x < 0) direction_ = Direction::WEST;
-        else if (speed_y > 0) direction_ = Direction::SOUTH;
-        else if (speed_y < 0) direction_ = Direction::NORTH;
     }
 
     Direction GetDirection() const noexcept { return direction_; }
@@ -55,7 +48,6 @@ public:
     char GetDirectionChar() const noexcept {
         return static_cast<char>(direction_);
     }
-
 
 private:
     Id id_;

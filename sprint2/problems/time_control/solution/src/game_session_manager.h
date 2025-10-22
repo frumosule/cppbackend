@@ -2,49 +2,58 @@
 
 #include "model.h"
 #include "player.h"
+#include <random>
 #include <unordered_map>
 #include <memory>
-#include <random>
 #include <mutex>
+#include <forward_list>
 
-namespace model
-{
-    class GameSessionManager
-    {
-    public:
-        explicit GameSessionManager(Game &game)
-            : game_(game),
-              next_player_id_(1),
-              generator_(std::random_device{}()),
-              distribution_(0, std::numeric_limits<uint64_t>::max()) {}
+namespace model {
 
-        std::shared_ptr<GameSession> FindSession(const Map::Id &map_id);
-        std::shared_ptr<Player> AddPlayer(const Map::Id &map_id, const std::string &player_name);
-        std::shared_ptr<Player> FindPlayerByToken(const std::string &auth_token);
-        std::shared_ptr<Player> FindPlayerById(Player::Id player_id);
-        bool UpdatePlayerAction(const std::string &auth_token, const std::string &move, double dog_speed);
-        std::unordered_map<Player::Id, std::shared_ptr<Player>> GetPlayersByToken(const std::string &auth_token);
-        void UpdateGameState(int time_delta_ms);
+class GameSessionManager {
+public:
+    explicit GameSessionManager(Game& game) : game_(game) {}
+    
+    std::shared_ptr<GameSession> FindSession(const Map::Id& map_id);
+    std::shared_ptr<Player> AddPlayer(const Map::Id& map_id, const std::string& player_name);
+    std::shared_ptr<Player> FindPlayerByToken(const std::string& auth_token);
+    std::shared_ptr<Player> FindPlayerById(Player::Id player_id);
+    bool UpdatePlayerAction(const std::string& auth_token, const std::string& move);
+    std::unordered_map<Player::Id, std::shared_ptr<Player>> GetPlayersByToken(const std::string& auth_token);
+    void UpdateGameState(int time_delta_ms);
 
-    private:
-        Game &game_;
-        std::unordered_map<Map::Id, std::shared_ptr<GameSession>> sessions_;
-        std::unordered_map<std::string, std::shared_ptr<Player>> players_by_token_;
-        std::unordered_map<Player::Id, std::shared_ptr<Player>> players_by_id_;
-        Player::Id next_player_id_;
-        std::mt19937_64 generator_;
-        std::uniform_int_distribution<uint64_t> distribution_;
-        std::mutex mutex_;
-
-        std::shared_ptr<GameSession> FindSessionUnsafe(const Map::Id &map_id);
-        std::shared_ptr<GameSession> CreateSessionUnsafe(const Map::Id &map_id);
-        std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string &auth_token);
-        std::string GenerateAuthToken();
-        std::pair<double, double> GetRandomPositionOnRoad(const Map::Id &map_id);
-        bool IsPositionOnRoad(const Road &road, double x, double y);
-        const model::Road* FindRoadForPosition(const std::vector<model::Road>& roads, double x, double y);
-        double ClampHorizontalMovement(const model::Road& road, double current_x, double target_x, double speed_x);
-        double ClampVerticalMovement(const model::Road& road, double current_y, double target_y, double speed_y);
-        std::vector<const Road*> FindAllRoadsForPosition(const std::vector<Road>& roads, double x, double y);
+private:
+    Game& game_;
+    std::unordered_map<Map::Id, std::shared_ptr<GameSession>> sessions_;
+    std::unordered_map<std::string, std::shared_ptr<Player>> players_by_token_;
+    std::unordered_map<Player::Id, std::shared_ptr<Player>> players_by_id_;
+    std::mutex mutex_;
+    Player::Id next_player_id_ = 0;
+    
+    // Генерация токенов
+    std::random_device random_device_;
+    std::mt19937_64 generator1_{random_device_()};
+    std::mt19937_64 generator2_{random_device_()};
+    std::uniform_int_distribution<uint64_t> distribution_;
+    
+    std::string GenerateAuthToken();
+    std::pair<double, double> GetRandomPositionOnRoad(const Map::Id& map_id);
+    std::shared_ptr<GameSession> FindSessionUnsafe(const Map::Id& map_id);
+    std::shared_ptr<GameSession> CreateSessionUnsafe(const Map::Id& map_id);
+    std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string& auth_token);
+    
+    // Новая логика движения как в образце
+    struct PointHash {
+        size_t operator()(const Point& p) const {
+            return std::hash<int>{}(p.x) ^ (std::hash<int>{}(p.y) << 1);
+        }
     };
-}
+    
+    std::unordered_map<Point, std::vector<const Road*>, model::PointHash> BuildRoadsGraph(const Map* map);
+    bool InBounds(const Road* road, double x, double y) const;
+    double GetMaxPossible(const Road* road, const std::string& direction) const;
+    std::pair<bool, std::pair<double, double>> CalculateMove(double x, double y, double speed_x, double speed_y, int delta, 
+                                                           const std::unordered_map<Point, std::vector<const Road*>, model::PointHash>& roads_graph) const;
+};
+
+} // namespace model

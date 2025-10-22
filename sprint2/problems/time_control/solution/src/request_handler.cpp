@@ -390,7 +390,7 @@ namespace http_handler
             double speed = GetMapDogSpeed(*map);
 
             // Обновляем действие игрока через GameSessionManager
-            if (!session_manager_.UpdatePlayerAction(*auth_token, move, speed))
+            if (!session_manager_.UpdatePlayerAction(*auth_token, move))
             {
                 return MakeJsonResponse(http::status::unauthorized,
                                         json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);

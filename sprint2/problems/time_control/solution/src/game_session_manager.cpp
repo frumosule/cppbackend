@@ -2,377 +2,470 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
-#include <mutex> 
+#include <mutex>
+#include <cmath>
 
-namespace model {
+namespace model
+{
 
-std::shared_ptr<GameSession> GameSessionManager::FindSession(const Map::Id& map_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return FindSessionUnsafe(map_id);
-}
-
-std::string GameSessionManager::GenerateAuthToken() {
-    uint64_t random_value = distribution_(generator_);
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0') << std::setw(16) << random_value;
-    
-    // ╨У╨╡╨╜╨╡╤А╨╕╤А╤Г╨╡╨╝ ╨▓╤В╨╛╤А╨╛╨╣ ╤Б╨╗╤Г╤З╨░╨╣╨╜╤Л╨╣ ╨╜╨╛╨╝╨╡╤А ╨┤╨╗╤П ╨┐╨╛╨╗╨╜╨╛╨│╨╛ 32-╤Б╨╕╨╝╨▓╨╛╨╗╤М╨╜╨╛╨│╨╛ ╤В╨╛╨║╨╡╨╜╨░
-    uint64_t random_value2 = distribution_(generator_);
-    ss << std::hex << std::setfill('0') << std::setw(16) << random_value2;
-    
-    return ss.str();
-}
-
-std::shared_ptr<Player> GameSessionManager::AddPlayer(const Map::Id& map_id, const std::string& player_name) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    // ╨Ш╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ unsafe ╨╝╨╡╤В╨╛╨┤╤Л ╨▓╨╜╤Г╤В╤А╨╕
-    auto session = FindSessionUnsafe(map_id);
-    if (!session) {
-        session = CreateSessionUnsafe(map_id);
+    std::shared_ptr<GameSession> GameSessionManager::FindSession(const Map::Id &map_id)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return FindSessionUnsafe(map_id);
     }
 
-    auto [pos_x, pos_y] = GetRandomPositionOnRoad(map_id);
-    
-    std::string auth_token = GenerateAuthToken();
-    auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token, map_id, pos_x, pos_y);
-    
-    session->AddPlayer(player);
-    players_by_token_[auth_token] = player;
-    players_by_id_[player->GetId()] = player;
-    
-    return player;
-}
-
-std::shared_ptr<Player> GameSessionManager::FindPlayerByToken(const std::string& auth_token) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return FindPlayerByTokenUnsafe(auth_token);
-}
-
-std::shared_ptr<Player> GameSessionManager::FindPlayerById(Player::Id player_id) {
-    std::lock_guard<std::mutex> lock(mutex_);  // ╨Ч╨░╤Й╨╕╤Й╨░╨╡╨╝ ╨┤╨╛╤Б╤В╤Г╨┐
-    auto it = players_by_id_.find(player_id);
-    return it != players_by_id_.end() ? it->second : nullptr;
-}
-
-bool GameSessionManager::UpdatePlayerAction(const std::string& auth_token, const std::string& move, double dog_speed) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    auto player = FindPlayerByTokenUnsafe(auth_token);
-    if (!player) {
-        return false;
-    }
-    
-    // ╨г╤Б╤В╨░╨╜╨░╨▓╨╗╨╕╨▓╨░╨╡╨╝ ╤Б╨║╨╛╤А╨╛╤Б╤В╤М
-    if (move == "L") {
-        player->SetSpeed(-dog_speed, 0.0);
-    } else if (move == "R") {
-        player->SetSpeed(dog_speed, 0.0);
-    } else if (move == "U") {
-        player->SetSpeed(0.0, -dog_speed);
-    } else if (move == "D") {
-        player->SetSpeed(0.0, dog_speed);
-    } else if (move == "") {
-        player->SetSpeed(0.0, 0.0);
-    }
-    
-    return true;
-}
-
-std::unordered_map<Player::Id, std::shared_ptr<Player>> GameSessionManager::GetPlayersByToken(const std::string& auth_token) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    // ╨Э╨░╤Е╨╛╨┤╨╕╨╝ ╨╕╨│╤А╨╛╨║╨░ ╨┐╨╛ ╤В╨╛╨║╨╡╨╜╤Г
-    auto current_player = FindPlayerByTokenUnsafe(auth_token);
-    if (!current_player) {
-        return {};
-    }
-    
-    // ╨Э╨░╤Е╨╛╨┤╨╕╨╝ ╤Б╨╡╤Б╤Б╨╕╤О ╤Н╤В╨╛╨│╨╛ ╨╕╨│╤А╨╛╨║╨░
-    auto session = FindSessionUnsafe(current_player->GetMapId());
-    if (!session) {
-        return {};
-    }
-    
-    // ╨Т╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╨╝ ╨▓╤Б╨╡╤Е ╨╕╨│╤А╨╛╨║╨╛╨▓ ╨▓ ╤Н╤В╨╛╨╣ ╤Б╨╡╤Б╤Б╨╕╨╕
-    return session->GetPlayers();
-}
-
-std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map::Id& map_id) {
-    // ╨в╨╡╨┐╨╡╤А╤М game_ ╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜ ╤З╨╡╤А╨╡╨╖ ╤Б╤Б╤Л╨╗╨║╤Г ╨▓ ╨║╨╗╨░╤Б╤Б╨╡
-    auto map = game_.FindMap(map_id);
-    if (!map) {
-        throw std::runtime_error("Map not found for getting random position");
-    }
-    
-    const auto& roads = map->GetRoads();
-    if (roads.empty()) {
-        throw std::runtime_error("No roads on the map");
+    std::string GameSessionManager::GenerateAuthToken()
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0') << std::setw(16) << generator1_()
+           << std::hex << std::setfill('0') << std::setw(16) << generator2_();
+        return ss.str();
     }
 
-    // ╨Т╨а╨Х╨Ь╨Х╨Э╨Э╨Ю: ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ ╨╜╨░╤З╨░╨╗╨╛ ╨┐╨╡╤А╨▓╨╛╨╣ ╨┤╨╛╤А╨╛╨│╨╕ ╨▓╨╝╨╡╤Б╤В╨╛ ╤Б╨╗╤Г╤З╨░╨╣╨╜╨╛╨╣ ╨┐╨╛╨╖╨╕╤Ж╨╕╨╕
-    const auto& first_road = roads[0];
-    const auto& start = first_road.GetStart();
-    
-    return {static_cast<double>(start.x), static_cast<double>(start.y)};
-    
-    // ╨Т╤Л╨▒╨╕╤А╨░╨╡╨╝ ╤Б╨╗╤Г╤З╨░╨╣╨╜╤Г╤О ╨┤╨╛╤А╨╛╨│╤Г
-    //std::uniform_int_distribution<size_t> road_dist(0, roads.size() - 1);
-    //const auto& road = roads[road_dist(generator_)];
-    
-    // ╨Т╤Л╨▒╨╕╤А╨░╨╡╨╝ ╤Б╨╗╤Г╤З╨░╨╣╨╜╤Г╤О ╨┐╨╛╨╖╨╕╤Ж╨╕╤О ╨╜╨░ ╨┤╨╛╤А╨╛╨│╨╡
-    //const auto& start = road.GetStart();
-    
-    //if (road.IsHorizontal()) {
-        //const auto& end = road.GetEnd();
-        //std::uniform_real_distribution<double> pos_dist(static_cast<double>(start.x), static_cast<double>(end.x));
-        //double x = pos_dist(generator_);
-        //double y = static_cast<double>(start.y);
-        //return std::make_pair(x, y);
-    //} else {
-        //const auto& end = road.GetEnd();
-        //std::uniform_real_distribution<double> pos_dist(static_cast<double>(start.y), static_cast<double>(end.y));
-        //double y = pos_dist(generator_);
-        //double x = static_cast<double>(start.x);
-        //return std::make_pair(x, y);
-    //}
-}
+    std::shared_ptr<Player> GameSessionManager::AddPlayer(const Map::Id &map_id, const std::string &player_name)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
 
-void GameSessionManager::UpdateGameState(int time_delta_ms) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    double delta_time = time_delta_ms / 1000.0;
-    
-    for (auto& [map_id, session] : sessions_) {
+        auto session = FindSessionUnsafe(map_id);
+        if (!session)
+        {
+            session = CreateSessionUnsafe(map_id);
+        }
+
+        auto [pos_x, pos_y] = GetRandomPositionOnRoad(map_id);
+
+        std::string auth_token = GenerateAuthToken();
+        auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token, map_id, pos_x, pos_y);
+
+        session->AddPlayer(player);
+        players_by_token_[auth_token] = player;
+        players_by_id_[player->GetId()] = player;
+
+        return player;
+    }
+
+    std::shared_ptr<Player> GameSessionManager::FindPlayerByToken(const std::string &auth_token)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return FindPlayerByTokenUnsafe(auth_token);
+    }
+
+    std::shared_ptr<Player> GameSessionManager::FindPlayerById(Player::Id player_id)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = players_by_id_.find(player_id);
+        return it != players_by_id_.end() ? it->second : nullptr;
+    }
+
+    bool GameSessionManager::UpdatePlayerAction(const std::string &auth_token, const std::string &move)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        auto player = FindPlayerByTokenUnsafe(auth_token);
+        if (!player)
+        {
+            return false;
+        }
+
+        // Находим карту для получения скорости
+        auto map = game_.FindMap(player->GetMapId());
+        if (!map)
+        {
+            return false;
+        }
+
+        double dog_speed = map->HasDogSpeed() ? map->GetDogSpeed() : game_.GetDefaultDogSpeed();
+
+        // Устанавливаем скорость как в образце
+        if (move == "L")
+        {
+            player->SetSpeed(-dog_speed, 0.0);
+            player->SetDirection(Direction::WEST);
+        }
+        else if (move == "R")
+        {
+            player->SetSpeed(dog_speed, 0.0);
+            player->SetDirection(Direction::EAST);
+        }
+        else if (move == "U")
+        {
+            player->SetSpeed(0.0, -dog_speed);
+            player->SetDirection(Direction::NORTH);
+        }
+        else if (move == "D")
+        {
+            player->SetSpeed(0.0, dog_speed);
+            player->SetDirection(Direction::SOUTH);
+        }
+        else if (move == "")
+        {
+            player->SetSpeed(0.0, 0.0);
+            // Направление не сбрасываем, как в образце
+        }
+
+        return true;
+    }
+
+    std::unordered_map<Player::Id, std::shared_ptr<Player>> GameSessionManager::GetPlayersByToken(const std::string &auth_token)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        auto current_player = FindPlayerByTokenUnsafe(auth_token);
+        if (!current_player)
+        {
+            return {};
+        }
+
+        auto session = FindSessionUnsafe(current_player->GetMapId());
+        if (!session)
+        {
+            return {};
+        }
+
+        return session->GetPlayers();
+    }
+
+    std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map::Id &map_id)
+    {
         auto map = game_.FindMap(map_id);
-        if (!map) continue;
-        
-        const auto& roads = map->GetRoads();
-        
-        for (auto& [player_id, player] : session->GetPlayers()) {
-            if (player->GetSpeedX() == 0.0 && player->GetSpeedY() == 0.0) {
+        if (!map)
+        {
+            throw std::runtime_error("Map not found for getting random position");
+        }
+
+        const auto &roads = map->GetRoads();
+        if (roads.empty())
+        {
+            throw std::runtime_error("No roads on the map");
+        }
+
+        // Временное решение: используем начало первой дороги
+        // В реальной реализации нужно выбирать случайную дорогу и случайную позицию на ней
+        const auto &first_road = roads[0];
+        const auto &start = first_road.GetStart();
+
+        return {static_cast<double>(start.x), static_cast<double>(start.y)};
+    }
+
+    void GameSessionManager::UpdateGameState(int time_delta_ms)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        for (auto &[map_id, session] : sessions_)
+        {
+            auto map = game_.FindMap(map_id);
+            if (!map)
                 continue;
-            }
-            
-            double current_x = player->GetPosX();
-            double current_y = player->GetPosY();
-            double speed_x = player->GetSpeedX();
-            double speed_y = player->GetSpeedY();
-            
-            double target_x = current_x + speed_x * delta_time;
-            double target_y = current_y + speed_y * delta_time;
-            
-            // ПРОСТОЕ РЕШЕНИЕ: проверяем ВСЕ дороги карты для целевой позиции
-            bool can_move_to_target = false;
-            for (const auto& road : roads) {
-                if (IsPositionOnRoad(road, target_x, target_y)) {
-                    can_move_to_target = true;
-                    break;
+
+            // Строим граф дорог для этой карты
+            auto roads_graph = BuildRoadsGraph(map);
+
+            for (auto &[player_id, player] : session->GetPlayers())
+            {
+                if (player->GetSpeedX() == 0.0 && player->GetSpeedY() == 0.0)
+                {
+                    continue;
+                }
+
+                double current_x = player->GetPosX();
+                double current_y = player->GetPosY();
+                double speed_x = player->GetSpeedX();
+                double speed_y = player->GetSpeedY();
+
+                // Вычисляем движение как в образце
+                auto [should_stop, new_pos] = CalculateMove(current_x, current_y, speed_x, speed_y,
+                                                            time_delta_ms, roads_graph);
+
+                player->SetPosition(new_pos.first, new_pos.second);
+
+                if (should_stop)
+                {
+                    player->SetSpeed(0.0, 0.0);
                 }
             }
-            
-            if (can_move_to_target) {
-                player->SetPosition(target_x, target_y);
-            } else {
-                // Ищем максимальное движение по ВСЕМ дорогам
-                double best_x = current_x;
-                double best_y = current_y;
-                bool found_better = false;
-                
-                for (int i = 1; i <= 100; i++) {
-                    double t = i / 100.0;
-                    double test_x = current_x + (target_x - current_x) * t;
-                    double test_y = current_y + (target_y - current_y) * t;
-                    
-                    bool valid = false;
-                    for (const auto& road : roads) {  // Проверяем ВСЕ дороги
-                        if (IsPositionOnRoad(road, test_x, test_y)) {
-                            valid = true;
-                            best_x = test_x;
-                            best_y = test_y;
-                            found_better = true;
-                            break;
+        }
+    }
+
+    std::unordered_map<Point, std::vector<const Road *>, model::PointHash>
+    GameSessionManager::BuildRoadsGraph(const Map *map)
+    {
+        std::unordered_map<Point, std::vector<const Road *>, model::PointHash> roads_graph;
+
+        std::cout << "=== Building Roads Graph ===" << std::endl;
+        std::cout << "Map has " << map->GetRoads().size() << " roads" << std::endl;
+
+        for (const auto &road : map->GetRoads())
+        {
+            auto start = road.GetStart();
+            auto end = road.GetEnd();
+
+            std::cout << "Processing road: (" << start.x << "," << start.y
+                      << ") to (" << end.x << "," << end.y
+                      << "), Horizontal: " << road.IsHorizontal() << std::endl;
+
+            if (road.IsHorizontal())
+            {
+                int start_x, end_x;
+                if (start.x < end.x)
+                {
+                    start_x = start.x;
+                    end_x = end.x;
+                }
+                else
+                {
+                    start_x = end.x;
+                    end_x = start.x;
+                }
+
+                std::cout << "  Adding horizontal points from " << start_x << " to " << end_x << " at y=" << start.y << std::endl;
+
+                for (; start_x <= end_x; ++start_x)
+                {
+                    Point p = {start_x, start.y};
+                    roads_graph[p].push_back(&road);
+                    std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                }
+            }
+            else
+            {
+                int start_y, end_y;
+                if (start.y < end.y)
+                {
+                    start_y = start.y;
+                    end_y = end.y;
+                }
+                else
+                {
+                    start_y = end.y;
+                    end_y = start.y;
+                }
+
+                std::cout << "  Adding vertical points from " << start_y << " to " << end_y << " at x=" << start.x << std::endl;
+
+                for (; start_y <= end_y; ++start_y)
+                {
+                    Point p = {start.x, start_y};
+                    roads_graph[p].push_back(&road);
+                    std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                }
+            }
+        }
+
+        std::cout << "=== Roads Graph Built ===" << std::endl;
+        std::cout << "Total points in graph: " << roads_graph.size() << std::endl;
+
+        // Проверим конкретно точку (1, 1)
+        auto check_point = roads_graph.find({1, 1});
+        if (check_point != roads_graph.end())
+        {
+            std::cout << "Point (1,1) FOUND in graph with " << check_point->second.size() << " roads" << std::endl;
+        }
+        else
+        {
+            std::cout << "Point (1,1) NOT FOUND in graph!" << std::endl;
+        }
+
+        return roads_graph;
+    }
+
+    bool GameSessionManager::InBounds(const Road *road, double x, double y) const
+    {
+        auto start_point = road->GetStart();
+        auto end_point = road->GetEnd();
+        double max_x, min_x, max_y, min_y;
+
+        if (road->IsHorizontal())
+        {
+            if (start_point.x < end_point.x)
+            {
+                min_x = static_cast<double>(start_point.x) - 0.4;
+                max_x = static_cast<double>(end_point.x) + 0.4;
+            }
+            else
+            {
+                min_x = static_cast<double>(end_point.x) - 0.4;
+                max_x = static_cast<double>(start_point.x) + 0.4;
+            }
+            min_y = static_cast<double>(start_point.y) - 0.4;
+            max_y = static_cast<double>(start_point.y) + 0.4;
+        }
+        else
+        {
+            if (start_point.y < end_point.y)
+            {
+                min_y = static_cast<double>(start_point.y) - 0.4;
+                max_y = static_cast<double>(end_point.y) + 0.4;
+            }
+            else
+            {
+                min_y = static_cast<double>(end_point.y) - 0.4;
+                max_y = static_cast<double>(start_point.y) + 0.4;
+            }
+            min_x = static_cast<double>(start_point.x) - 0.4;
+            max_x = static_cast<double>(start_point.x) + 0.4;
+        }
+
+        bool result = (x <= max_x && x >= min_x && y <= max_y && y >= min_y);
+
+        std::cout << "InBounds: road(" << start_point.x << "," << start_point.y
+                  << ")-(" << end_point.x << "," << end_point.y
+                  << "), point(" << x << "," << y
+                  << "), bounds[" << min_x << "," << max_x << "][" << min_y << "," << max_y
+                  << "] = " << (result ? "IN" : "OUT") << std::endl;
+
+        return result;
+    }
+
+    double GameSessionManager::GetMaxPossible(const Road *road, const std::string &direction) const
+    {
+        double result = 0.0;
+
+        if (direction == "NORTH")
+        {
+            result = static_cast<double>(std::min(road->GetEnd().y, road->GetStart().y)) - 0.4;
+        }
+        else if (direction == "SOUTH")
+        {
+            result = static_cast<double>(std::max(road->GetEnd().y, road->GetStart().y)) + 0.4;
+        }
+        else if (direction == "EAST")
+        {
+            result = static_cast<double>(std::max(road->GetEnd().x, road->GetStart().x)) + 0.4;
+        }
+        else if (direction == "WEST")
+        {
+            result = static_cast<double>(std::min(road->GetEnd().x, road->GetStart().x)) - 0.4;
+        }
+
+        std::cout << "GetMaxPossible: direction=" << direction << ", result=" << result << std::endl;
+        return result;
+    }
+
+    std::pair<bool, std::pair<double, double>> GameSessionManager::CalculateMove(
+        double x, double y, double speed_x, double speed_y, int delta,
+        const std::unordered_map<Point, std::vector<const Road *>, model::PointHash> &roads_graph) const
+    {
+
+        double in_seconds = static_cast<double>(delta) / 1000.0;
+        double end_x = x + speed_x * in_seconds;
+        double end_y = y + speed_y * in_seconds;
+
+        std::cout << "=== CalculateMove ===" << std::endl;
+        std::cout << "Start: (" << x << ", " << y << ")" << std::endl;
+        std::cout << "Speed: (" << speed_x << ", " << speed_y << ")" << std::endl;
+        std::cout << "Target: (" << end_x << ", " << end_y << ")" << std::endl;
+
+        Point rounded = {static_cast<int>(std::round(x)), static_cast<int>(std::round(y))};
+        std::cout << "Rounded point: (" << rounded.x << ", " << rounded.y << ")" << std::endl;
+
+        std::vector<Point> points_to_check = {
+            rounded,
+            {rounded.x - 1, rounded.y},
+            {rounded.x + 1, rounded.y},
+            {rounded.x, rounded.y - 1},
+            {rounded.x, rounded.y + 1}};
+
+        // Проверяем все точки из списка
+        for (const auto &point : points_to_check)
+        {
+            auto it = roads_graph.find(point);
+            if (it != roads_graph.end())
+            {
+                std::cout << "Found " << it->second.size() << " roads at point (" << point.x << "," << point.y << ")" << std::endl;
+
+                // 1. Сначала проверяем, можно ли двигаться до конечной точки
+                for (const auto &road : it->second)
+                {
+                    bool in_bounds = InBounds(road, end_x, end_y);
+                    std::cout << "Road from (" << road->GetStart().x << "," << road->GetStart().y
+                              << ") to (" << road->GetEnd().x << "," << road->GetEnd().y
+                              << ") - InBounds: " << in_bounds << std::endl;
+
+                    if (in_bounds)
+                    {
+                        std::cout << "MOVEMENT ALLOWED to target position" << std::endl;
+                        return {false, {end_x, end_y}};
+                    }
+                }
+
+                std::cout << "NO ROAD ALLOWS MOVEMENT TO TARGET - CHECKING BOUNDARIES" << std::endl;
+
+                // 2. Если нельзя двигаться до конечной точки - находим границу
+                for (const auto &road : it->second)
+                {
+                    if (road->IsHorizontal() && speed_y == 0.0)
+                    {
+                        // Горизонтальная дорога, движение по X
+                        if (speed_x > 0)
+                        {
+                            double max_x = GetMaxPossible(road, "EAST");
+                            std::cout << "Horizontal road - stopping at EAST boundary: " << max_x << std::endl;
+                            return {true, {max_x, y}};
+                        }
+                        else
+                        {
+                            double max_x = GetMaxPossible(road, "WEST");
+                            std::cout << "Horizontal road - stopping at WEST boundary: " << max_x << std::endl;
+                            return {true, {max_x, y}};
                         }
                     }
-                    
-                    if (!valid) break;
+
+                    if (road->IsVertical() && speed_x == 0.0)
+                    {
+                        // Вертикальная дорога, движение по Y
+                        if (speed_y > 0)
+                        {
+                            double max_y = GetMaxPossible(road, "SOUTH");
+                            std::cout << "Vertical road - stopping at SOUTH boundary: " << max_y << std::endl;
+                            return {true, {x, max_y}};
+                        }
+                        else
+                        {
+                            double max_y = GetMaxPossible(road, "NORTH");
+                            std::cout << "Vertical road - stopping at NORTH boundary: " << max_y << std::endl;
+                            return {true, {x, max_y}};
+                        }
+                    }
                 }
-                
-                if (found_better) {
-                    player->SetPosition(best_x, best_y);
-                    player->SetSpeed(0.0, 0.0);
-                } else {
-                    player->SetSpeed(0.0, 0.0);
-                }
+            }
+            else
+            {
+                std::cout << "NO ROADS FOUND at point (" << point.x << ", " << point.y << ")" << std::endl;
             }
         }
-    }
-}
 
-const model::Road* GameSessionManager::FindRoadForPosition(const std::vector<model::Road>& roads, double x, double y) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    for (const auto& road : roads) {
-        const auto& start = road.GetStart();
-        
-        if (road.IsHorizontal()) {
-            const auto& end = road.GetEnd();
-            int min_x = std::min(start.x, end.x);
-            int max_x = std::max(start.x, end.x);
+        // 3. Fallback - если после проверки ВСЕХ точек ничего не нашли
+        std::cout << "NO ROADS FOUND IN ANY CHECKED POINTS - USING FALLBACK" << std::endl;
 
-             bool in_road = (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
-                           y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH);
-            
-            // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╨╜╨░╤Е╨╛╨┤╨╕╤В╤Б╤П ╨╗╨╕ ╨┐╨╛╨╖╨╕╤Ж╨╕╤П ╨▓ ╨┐╤А╨╡╨┤╨╡╨╗╨░╤Е ╨┤╨╛╤А╨╛╨│╨╕
-            if (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
-                y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH) {
-                return &road;
-            }
-        } else {
-            const auto& end = road.GetEnd();
-            int min_y = std::min(start.y, end.y);
-            int max_y = std::max(start.y, end.y);
-
-            bool in_road = (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
-                           y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH);
-            
-            // ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╨╜╨░╤Е╨╛╨┤╨╕╤В╤Б╤П ╨╗╨╕ ╨┐╨╛╨╖╨╕╤Ж╨╕╤П ╨▓ ╨┐╤А╨╡╨┤╨╡╨╗╨░╤Е ╨┤╨╛╤А╨╛╨│╨╕
-            if (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
-                y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH) {
-                return &road;
-            }
+        if (speed_x == 0.0)
+        {
+            end_y = speed_y > 0 ? std::round(y) + 0.4 : std::round(y) - 0.4;
+            std::cout << "Fallback Y movement: " << end_y << std::endl;
+            return {true, {x, end_y}};
         }
+
+        end_x = speed_x > 0 ? std::round(x) + 0.4 : std::round(x) - 0.4;
+        std::cout << "Fallback X movement: " << end_x << std::endl;
+        return {true, {end_x, y}};
     }
-    return nullptr;
-}
 
-double GameSessionManager::ClampHorizontalMovement(const model::Road& road, double current_x, double target_x, double speed_x) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    const auto& start = road.GetStart();
-    const auto& end = road.GetEnd();
-    
-    int min_x = std::min(start.x, end.x);
-    int max_x = std::max(start.x, end.x);
-    
-    double road_min_x = min_x - HALF_ROAD_WIDTH;
-    double road_max_x = max_x + HALF_ROAD_WIDTH;
-    
-    if (speed_x > 0) { // ╨Ф╨▓╨╕╨╢╨╡╨╜╨╕╨╡ ╨▓╨┐╤А╨░╨▓╨╛
-        return std::min(target_x, road_max_x);
-    } else { // ╨Ф╨▓╨╕╨╢╨╡╨╜╨╕╨╡ ╨▓╨╗╨╡╨▓╨╛
-        return std::max(target_x, road_min_x);
+    std::shared_ptr<GameSession> GameSessionManager::FindSessionUnsafe(const Map::Id &map_id)
+    {
+        auto it = sessions_.find(map_id);
+        return it != sessions_.end() ? it->second : nullptr;
     }
-}
 
-double GameSessionManager::ClampVerticalMovement(const model::Road& road, double current_y, double target_y, double speed_y) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    const auto& start = road.GetStart();
-    const auto& end = road.GetEnd();
-    
-    int min_y = std::min(start.y, end.y);
-    int max_y = std::max(start.y, end.y);
-    
-    double road_min_y = min_y - HALF_ROAD_WIDTH;
-    double road_max_y = max_y + HALF_ROAD_WIDTH;
-    
-    if (speed_y > 0) { // ╨Ф╨▓╨╕╨╢╨╡╨╜╨╕╨╡ ╨▓╨╜╨╕╨╖
-        return std::min(target_y, road_max_y);
-    } else { // ╨Ф╨▓╨╕╨╢╨╡╨╜╨╕╨╡ ╨▓╨▓╨╡╤А╤Е
-        return std::max(target_y, road_min_y);
+    std::shared_ptr<GameSession> GameSessionManager::CreateSessionUnsafe(const Map::Id &map_id)
+    {
+        auto session = std::make_shared<GameSession>(map_id);
+        sessions_[map_id] = session;
+        return session;
     }
-}
 
-std::vector<const Road*> GameSessionManager::FindAllRoadsForPosition(const std::vector<Road>& roads, double x, double y) {
-    std::vector<const Road*> result;
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    std::cout << "DEBUG: Finding roads for position (" << x << ", " << y << ")" << std::endl;
-    
-    for (const auto& road : roads) {
-        const auto& start = road.GetStart();
-        
-        if (road.IsHorizontal()) {
-            const auto& end = road.GetEnd();
-            int min_x = std::min(start.x, end.x);
-            int max_x = std::max(start.x, end.x);
-
-            bool in_road = (x >= min_x - HALF_ROAD_WIDTH && x <= max_x + HALF_ROAD_WIDTH &&
-                           y >= start.y - HALF_ROAD_WIDTH && y <= start.y + HALF_ROAD_WIDTH);
-            
-            if (in_road) {
-                std::cout << "DEBUG: Found HORIZONTAL road from (" << start.x << "," << start.y 
-                         << ") to (" << end.x << "," << start.y << ")" << std::endl;
-                result.push_back(&road);
-            }
-        } else {
-            const auto& end = road.GetEnd();
-            int min_y = std::min(start.y, end.y);
-            int max_y = std::max(start.y, end.y);
-
-            bool in_road = (x >= start.x - HALF_ROAD_WIDTH && x <= start.x + HALF_ROAD_WIDTH &&
-                           y >= min_y - HALF_ROAD_WIDTH && y <= max_y + HALF_ROAD_WIDTH);
-            
-            if (in_road) {
-                std::cout << "DEBUG: Found VERTICAL road from (" << start.x << "," << start.y 
-                         << ") to (" << start.x << "," << end.y << ")" << std::endl;
-                result.push_back(&road);
-            }
-        }
+    std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string &auth_token)
+    {
+        auto it = players_by_token_.find(auth_token);
+        return it != players_by_token_.end() ? it->second : nullptr;
     }
-    
-    std::cout << "DEBUG: Total roads found: " << result.size() << std::endl;
-    return result;
-}
-
-std::shared_ptr<GameSession> GameSessionManager::FindSessionUnsafe(const Map::Id& map_id) {
-    auto it = sessions_.find(map_id);
-    return it != sessions_.end() ? it->second : nullptr;
-}
-
-std::shared_ptr<GameSession> GameSessionManager::CreateSessionUnsafe(const Map::Id& map_id) {
-    auto session = std::make_shared<GameSession>(map_id);
-    sessions_[map_id] = session;
-    return session;
-}
-
-std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string& auth_token) {
-    auto it = players_by_token_.find(auth_token);
-    return it != players_by_token_.end() ? it->second : nullptr;
-}
-
-bool GameSessionManager::IsPositionOnRoad(const Road& road, double x, double y) {
-    const double ROAD_WIDTH = 0.8;
-    const double HALF_ROAD_WIDTH = ROAD_WIDTH / 2.0;
-    
-    const auto& start = road.GetStart();
-    
-    if (road.IsHorizontal()) {
-        const auto& end = road.GetEnd();
-        int min_x = std::min(start.x, end.x);
-        int max_x = std::max(start.x, end.x);
-
-        bool within_x = (x >= min_x - HALF_ROAD_WIDTH) && (x <= max_x + HALF_ROAD_WIDTH);
-        bool within_y = (y >= start.y - HALF_ROAD_WIDTH) && (y <= start.y + HALF_ROAD_WIDTH);
-        
-        return within_x && within_y;
-    } else {
-        const auto& end = road.GetEnd();
-        int min_y = std::min(start.y, end.y);
-        int max_y = std::max(start.y, end.y);
-
-        // ИСПРАВЛЕНИЕ: учитываем полную ширину дороги до конца
-        bool within_x = (x >= start.x - HALF_ROAD_WIDTH) && (x <= start.x + HALF_ROAD_WIDTH);
-        bool within_y = (y >= min_y - HALF_ROAD_WIDTH) && (y <= max_y + HALF_ROAD_WIDTH);
-        
-        return within_x && within_y;
-    }
-}
 
 } // namespace model
-
