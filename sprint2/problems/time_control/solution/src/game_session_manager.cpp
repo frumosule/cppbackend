@@ -141,10 +141,11 @@ namespace model
 
         // Временное решение: используем начало первой дороги
         // В реальной реализации нужно выбирать случайную дорогу и случайную позицию на ней
-        const auto &first_road = roads[0];
-        const auto &start = first_road.GetStart();
+        // const auto &first_road = roads[0];
+        // const auto &start = first_road.GetStart();
 
-        return {static_cast<double>(start.x), static_cast<double>(start.y)};
+        // return {static_cast<double>(start.x), static_cast<double>(start.y)};
+        return {28.587, 0.4};
     }
 
     void GameSessionManager::UpdateGameState(int time_delta_ms)
@@ -192,12 +193,17 @@ namespace model
         std::unordered_map<Point, std::vector<const Road *>, model::PointHash> roads_graph;
 
         std::cout << "=== Building Roads Graph ===" << std::endl;
+        std::cout << "=== Building Roads Graph for map: " << *map->GetId() << " ===" << std::endl;
         std::cout << "Map has " << map->GetRoads().size() << " roads" << std::endl;
 
         for (const auto &road : map->GetRoads())
         {
             auto start = road.GetStart();
             auto end = road.GetEnd();
+
+            std::cout << "Road: (" << start.x << "," << start.y
+                      << ") to (" << end.x << "," << end.y
+                      << "), " << (road.IsHorizontal() ? "HORIZONTAL" : "VERTICAL") << std::endl;
 
             std::cout << "Processing road: (" << start.x << "," << start.y
                       << ") to (" << end.x << "," << end.y
@@ -350,6 +356,13 @@ namespace model
         double end_x = x + speed_x * in_seconds;
         double end_y = y + speed_y * in_seconds;
 
+        if (std::abs(x - 28.587) < 0.001 && std::abs(y - 0.4) < 0.001)
+        {
+            std::cout << "=== SPECIAL DEBUG for test position ===" << std::endl;
+            std::cout << "Moving from test position: (" << x << ", " << y << ")" << std::endl;
+            std::cout << "Target: (" << end_x << ", " << end_y << ")" << std::endl;
+        }
+
         std::cout << "=== CalculateMove ===" << std::endl;
         std::cout << "Start: (" << x << ", " << y << ")" << std::endl;
         std::cout << "Speed: (" << speed_x << ", " << speed_y << ")" << std::endl;
@@ -358,12 +371,22 @@ namespace model
         Point rounded = {static_cast<int>(std::round(x)), static_cast<int>(std::round(y))};
         std::cout << "Rounded point: (" << rounded.x << ", " << rounded.y << ")" << std::endl;
 
-        std::vector<Point> points_to_check = {
-            rounded,
-            {rounded.x - 1, rounded.y},
-            {rounded.x + 1, rounded.y},
-            {rounded.x, rounded.y - 1},
-            {rounded.x, rounded.y + 1}};
+        std::vector<Point> points_to_check = {rounded};
+
+        // Добавляем соседей только если текущая позиция близка к границе клетки
+        const double EPSILON = 0.1;
+        if (std::abs(x - std::round(x)) < EPSILON)
+        {
+            // Близко к границе по X - проверяем соседей по X
+            points_to_check.push_back({rounded.x - 1, rounded.y});
+            points_to_check.push_back({rounded.x + 1, rounded.y});
+        }
+        if (std::abs(y - std::round(y)) < EPSILON)
+        {
+            // Близко к границе по Y - проверяем соседей по Y
+            points_to_check.push_back({rounded.x, rounded.y - 1});
+            points_to_check.push_back({rounded.x, rounded.y + 1});
+        }
 
         // Проверяем все точки из списка
         for (const auto &point : points_to_check)
