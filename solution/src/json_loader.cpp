@@ -63,19 +63,16 @@ model::Map ParseMap(const json::object& map_obj) {
         map.SetDogSpeed(dog_speed);
     }
     
-    // Загружаем дороги
     auto roads = map_obj.at("roads").as_array();
     for (const auto& road_json : roads) {
         map.AddRoad(ParseRoad(road_json.as_object()));
     }
     
-    // Загружаем здания
     auto buildings = map_obj.at("buildings").as_array();
     for (const auto& building_json : buildings) {
         map.AddBuilding(ParseBuilding(building_json.as_object()));
     }
     
-    // Загружаем офисы
     auto offices = map_obj.at("offices").as_array();
     for (const auto& office_json : offices) {
         map.AddOffice(ParseOffice(office_json.as_object()));
@@ -89,11 +86,9 @@ model::Road ParseRoad(const json::object& road_obj) {
     model::Coord y0 = road_obj.at("y0").as_int64();
     
     if (road_obj.contains("x1")) {
-        // Горизонтальная дорога
         model::Coord x1 = road_obj.at("x1").as_int64();
         return model::Road(model::Road::HORIZONTAL, model::Point{x0, y0}, x1);
     } else {
-        // Вертикальная дорога
         model::Coord y1 = road_obj.at("y1").as_int64();
         return model::Road(model::Road::VERTICAL, model::Point{x0, y0}, y1);
     }

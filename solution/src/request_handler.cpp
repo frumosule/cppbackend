@@ -9,11 +9,9 @@ namespace http_handler
 
     namespace json = boost::json;
 
-    // Обновленный конструктор
     RequestHandler::RequestHandler(model::Game& game, model::GameSessionManager& session_manager, const std::string& static_path)
-    : game_(game), session_manager_(session_manager), static_root_(static_path), auto_tick_mode_(false) {
-
-        // Инициализация MIME-типов
+    : game_(game), session_manager_(session_manager), static_root_(static_path), auto_tick_mode_(false) 
+    {
         mime_types_ = {
             {".htm", "text/html"},
             {".html", "text/html"},
@@ -52,7 +50,6 @@ namespace http_handler
     {
         const auto target = std::string(req.target());
 
-        // Существующие endpoints для карт
         if (req.method() == http::verb::get && target == "/api/v1/maps")
         {
             return GetMapsList(req);
@@ -64,7 +61,6 @@ namespace http_handler
             return GetMapById(map_id, req);
         }
 
-        // Новые endpoints для игры
         if (target == "/api/v1/game/join")
         {
             if (req.method() == http::verb::post)
@@ -73,7 +69,6 @@ namespace http_handler
             }
             else
             {
-                // Для всех других методов возвращаем 405
                 StringResponse response(http::status::method_not_allowed, req.version());
                 response.set(http::field::content_type, "application/json");
                 response.set(http::field::allow, "POST");
@@ -94,7 +89,6 @@ namespace http_handler
             }
             else
             {
-                // Для всех других методов возвращаем 405
                 StringResponse response(http::status::method_not_allowed, req.version());
                 response.set(http::field::content_type, "application/json");
                 response.set(http::field::allow, "GET, HEAD");
@@ -115,7 +109,6 @@ namespace http_handler
             }
             else
             {
-                // Для всех других методов возвращаем 405
                 StringResponse response(http::status::method_not_allowed, req.version());
                 response.set(http::field::content_type, "application/json");
                 response.set(http::field::allow, "GET, HEAD");
@@ -136,7 +129,6 @@ namespace http_handler
             }
             else
             {
-                // Для всех других методов возвращаем 405
                 StringResponse response(http::status::method_not_allowed, req.version());
                 response.set(http::field::content_type, "application/json");
                 response.set(http::field::allow, "POST");
@@ -157,7 +149,6 @@ namespace http_handler
             }
             else
             {
-                // Для всех других методов возвращаем 405
                 StringResponse response(http::status::method_not_allowed, req.version());
                 response.set(http::field::content_type, "application/json");
                 response.set(http::field::allow, "POST");
@@ -177,7 +168,6 @@ namespace http_handler
     StringResponse RequestHandler::HandleJoinGame(StringRequest &&req)
     {
 
-        // Проверяем метод
         if (req.method() != http::verb::post)
         {
             StringResponse response(http::status::method_not_allowed, req.version());
@@ -191,7 +181,6 @@ namespace http_handler
             return response;
         }
 
-        // Проверяем Content-Type
         if (req.find(http::field::content_type) == req.end() ||
             req[http::field::content_type] != "application/json")
         {
@@ -201,11 +190,9 @@ namespace http_handler
 
         try
         {
-            // Парсим JSON
             json::value json_body = json::parse(req.body());
             json::object obj = json_body.as_object();
 
-            // Проверяем обязательные поля
             if (!obj.contains("userName") || !obj.contains("mapId"))
             {
                 return MakeJsonResponse(http::status::bad_request,
@@ -215,14 +202,12 @@ namespace http_handler
             std::string user_name = json::value_to<std::string>(obj.at("userName"));
             std::string map_id = json::value_to<std::string>(obj.at("mapId"));
 
-            // Проверяем имя игрока
             if (user_name.empty())
             {
                 return MakeJsonResponse(http::status::bad_request,
                                         json::object{{"code", "invalidArgument"}, {"message", "Invalid name"}}, req);
             }
 
-            // Проверяем существование карты
             auto map = game_.FindMap(model::Map::Id(map_id));
             if (!map)
             {
@@ -230,11 +215,9 @@ namespace http_handler
                                         json::object{{"code", "mapNotFound"}, {"message", "Map not found"}}, req);
             }
 
-            // Добавляем игрока через GameSessionManager
             auto player = session_manager_.AddPlayer(model::Map::Id(map_id), user_name);
 
-            // Формируем ответ - создаем объект правильно
-            json::object response_json; // ← ОБЪЯВЛЕНИЕ ПЕРЕМЕННОЙ ДОБАВЛЕНО ЗДЕСЬ
+            json::object response_json;
             response_json["authToken"] = player->GetAuthToken();
             response_json["playerId"] = player->GetId();
 
@@ -242,13 +225,11 @@ namespace http_handler
         }
         catch (const json::system_error &e)
         {
-            // Ошибка парсинга JSON
             return MakeJsonResponse(http::status::bad_request,
                                     json::object{{"code", "invalidArgument"}, {"message", "Join game request parse error"}}, req);
         }
         catch (const std::exception &e)
         {
-            // Другие ошибки
             return MakeJsonResponse(http::status::bad_request,
                                     json::object{{"code", "invalidArgument"}, {"message", "Join game request parse error"}}, req);
         }
@@ -256,7 +237,6 @@ namespace http_handler
 
     StringResponse RequestHandler::HandleGetPlayers(StringRequest &&req)
     {
-        // Проверяем метод
         if (req.method() != http::verb::get && req.method() != http::verb::head)
         {
             StringResponse response(http::status::method_not_allowed, req.version());
@@ -270,7 +250,6 @@ namespace http_handler
             return response;
         }
 
-        // Извлекаем токен
         auto auth_token = ExtractAuthToken(req);
         if (!auth_token)
         {
@@ -278,7 +257,6 @@ namespace http_handler
                                     json::object{{"code", "invalidToken"}, {"message", "Authorization header is missing"}}, req);
         }
 
-        // Находим игрока по токену через GameSessionManager
         auto player = session_manager_.FindPlayerByToken(*auth_token);
         if (!player)
         {
@@ -286,15 +264,12 @@ namespace http_handler
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }
 
-        // Находим сессию игрока через GameSessionManager
         auto session = session_manager_.FindSession(player->GetMapId());
         if (!session)
         {
-            // Если сессии нет, возвращаем пустой список
             return MakeJsonResponse(http::status::ok, json::object{}, req);
         }
 
-        // Формируем список игроков
         json::object players_json;
         for (const auto &[player_id, player_ptr] : session->GetPlayers())
         {
@@ -303,7 +278,6 @@ namespace http_handler
             players_json[std::to_string(player_id)] = player_info;
         }
 
-        // Для HEAD запроса не добавляем тело
         auto response = MakeJsonResponse(http::status::ok, players_json, req);
         if (req.method() == http::verb::head)
         {
@@ -315,11 +289,8 @@ namespace http_handler
 
     StringResponse RequestHandler::HandlePlayerAction(StringRequest &&req)
     {
-        // Проверяем метод
         if (req.method() != http::verb::post)
         {
-
-            // ДОБАВЬ ЭТОТ КУСОК:
             StringResponse response(http::status::method_not_allowed, req.version());
             response.set(http::field::content_type, "application/json");
             response.set(http::field::allow, "POST");
@@ -331,7 +302,6 @@ namespace http_handler
             return response;
         }
 
-        // Проверяем Content-Type
         if (req.find(http::field::content_type) == req.end() ||
             req[http::field::content_type] != "application/json")
         {
@@ -339,7 +309,6 @@ namespace http_handler
                                     json::object{{"code", "invalidArgument"}, {"message", "Invalid content type"}}, req);
         }
 
-        // Извлекаем токен
         auto auth_token = ExtractAuthToken(req);
         if (!auth_token)
         {
@@ -347,7 +316,6 @@ namespace http_handler
                                     json::object{{"code", "invalidToken"}, {"message", "Authorization header is required"}}, req);
         }
 
-        // Находим игрока по токену
         auto player = session_manager_.FindPlayerByToken(*auth_token);
         if (!player)
         {
@@ -357,11 +325,9 @@ namespace http_handler
 
         try
         {
-            // Парсим JSON
             json::value json_body = json::parse(req.body());
             json::object obj = json_body.as_object();
 
-            // Проверяем поле move
             if (!obj.contains("move"))
             {
                 return MakeJsonResponse(http::status::bad_request,
@@ -370,14 +336,12 @@ namespace http_handler
 
             std::string move = json::value_to<std::string>(obj.at("move"));
 
-            // Валидируем значение move
             if (move != "L" && move != "R" && move != "U" && move != "D" && move != "")
             {
                 return MakeJsonResponse(http::status::bad_request,
                                         json::object{{"code", "invalidArgument"}, {"message", "Failed to parse action"}}, req);
             }
 
-            // Находим карту для получения скорости
             auto map = game_.FindMap(player->GetMapId());
             if (!map)
             {
@@ -385,17 +349,14 @@ namespace http_handler
                                         json::object{{"code", "invalidArgument"}, {"message", "Map not found"}}, req);
             }
 
-            // Получаем скорость для карты
             double speed = GetMapDogSpeed(*map);
 
-            // Обновляем действие игрока через GameSessionManager
             if (!session_manager_.UpdatePlayerAction(*auth_token, move))
             {
                 return MakeJsonResponse(http::status::unauthorized,
                                         json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
             }
 
-            // Возвращаем успешный ответ с пустым JSON-объектом
             StringResponse response = MakeJsonResponse(http::status::ok, json::object{}, req);
             response.set(http::field::cache_control, "no-cache");
 
@@ -422,13 +383,11 @@ namespace http_handler
 
         std::string auth_value = auth_header->value();
 
-        // Проверяем формат "Bearer <token>"
         if (!auth_value.starts_with("Bearer "))
         {
             return std::nullopt;
         }
 
-        // Извлекаем токен (после "Bearer ")
         return auth_value.substr(7);
     }
 
@@ -442,7 +401,6 @@ namespace http_handler
                                         {"message", "Tick is automatic in this mode"}},
                                     req);
         }
-        // Проверяем метод
         if (req.method() != http::verb::post)
         {
             StringResponse response(http::status::method_not_allowed, req.version());
@@ -456,7 +414,6 @@ namespace http_handler
             return response;
         }
 
-        // Проверяем Content-Type
         if (req.find(http::field::content_type) == req.end() ||
             req[http::field::content_type] != "application/json")
         {
@@ -466,11 +423,9 @@ namespace http_handler
 
         try
         {
-            // Парсим JSON
             json::value json_body = json::parse(req.body());
             json::object obj = json_body.as_object();
 
-            // Проверяем поле timeDelta
             if (!obj.contains("timeDelta"))
             {
                 return MakeJsonResponse(http::status::bad_request,
@@ -486,17 +441,14 @@ namespace http_handler
 
             int time_delta = json::value_to<int>(obj.at("timeDelta"));
 
-            // Проверяем, что timeDelta неотрицательный
             if (time_delta < 0)
             {
                 return MakeJsonResponse(http::status::bad_request,
                                         json::object{{"code", "invalidArgument"}, {"message", "Invalid timeDelta"}}, req);
             }
 
-            // Обновляем состояние игры через GameSessionManager
             session_manager_.UpdateGameState(time_delta);
 
-            // Возвращаем успешный ответ с пустым JSON-объектом
             StringResponse response = MakeJsonResponse(http::status::ok, json::object{}, req);
             response.set(http::field::cache_control, "no-cache");
             return response;
@@ -523,34 +475,28 @@ namespace http_handler
 
         std::string decoded_path = UrlDecode(std::string(req.target()));
 
-        // Убираем начальный слэш
         if (decoded_path.starts_with("/"))
         {
             decoded_path = decoded_path.substr(1);
         }
 
-        // Если путь пустой, используем index.html
         if (decoded_path.empty())
         {
             decoded_path = "index.html";
         }
 
-        // Строим полный путь к файлу - исправляем оператор /
         fs::path file_path = fs::path(static_root_) / decoded_path;
 
-        // Проверяем, что путь находится внутри корневой директории
         if (!IsPathWithinRoot(file_path, static_root_))
         {
             return MakeErrorResponse(http::status::bad_request, "Invalid path", req);
         }
 
-        // Если путь указывает на директорию, используем index.html
         if (fs::is_directory(file_path))
         {
             file_path /= "index.html";
         }
 
-        // Проверяем существование файла
         if (!fs::exists(file_path) || !fs::is_regular_file(file_path))
         {
             return MakeErrorResponse(http::status::not_found, "File not found", req);
@@ -561,7 +507,6 @@ namespace http_handler
 
     StringResponse RequestHandler::HandleGameState(StringRequest &&req)
     {
-        // Проверяем метод
         if (req.method() != http::verb::get && req.method() != http::verb::head)
         {
             StringResponse response(http::status::method_not_allowed, req.version());
@@ -575,7 +520,6 @@ namespace http_handler
             return response;
         }
 
-        // Извлекаем токен
         auto auth_token = ExtractAuthToken(req);
         if (!auth_token)
         {
@@ -583,7 +527,6 @@ namespace http_handler
                                     json::object{{"code", "invalidToken"}, {"message", "Authorization header is required"}}, req);
         }
 
-        // Получаем игроков через GameSessionManager
         auto players = session_manager_.GetPlayersByToken(*auth_token);
         if (players.empty())
         {
@@ -591,25 +534,21 @@ namespace http_handler
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }
 
-        // Формируем JSON ответ
         json::object players_json;
         for (const auto &[player_id, player] : players)
         {
             json::object player_info;
 
-            // Позиция
             json::array pos_array;
             pos_array.push_back(player->GetPosX());
             pos_array.push_back(player->GetPosY());
             player_info["pos"] = pos_array;
 
-            // Скорость
             json::array speed_array;
             speed_array.push_back(player->GetSpeedX());
             speed_array.push_back(player->GetSpeedY());
             player_info["speed"] = speed_array;
 
-            // Направление
             player_info["dir"] = std::string(1, player->GetDirectionChar());
 
             players_json[std::to_string(player_id)] = player_info;
@@ -618,7 +557,6 @@ namespace http_handler
         json::object response_json;
         response_json["players"] = players_json;
 
-        // Для HEAD запроса не добавляем тело
         auto response = MakeJsonResponse(http::status::ok, response_json, req);
         if (req.method() == http::verb::head)
         {
@@ -628,7 +566,6 @@ namespace http_handler
         return response;
     }
 
-    // Остальные методы остаются без изменений...
     std::string RequestHandler::UrlDecode(const std::string &url)
     {
         std::string result;
@@ -696,26 +633,22 @@ namespace http_handler
 
         try
         {
-            // Открываем файл
             std::ifstream file(file_path, std::ios::binary);
             if (!file)
             {
                 return MakeErrorResponse(http::status::not_found, "File not found", req);
             }
 
-            // Читаем содержимое файла
             std::stringstream buffer;
             buffer << file.rdbuf();
             std::string content = buffer.str();
 
-            // Устанавливаем статус
             response.result(http::status::ok);
             response.version(req.version());
             response.set(http::field::content_type, GetMimeType(file_path.extension().string()));
             response.set(http::field::content_length, std::to_string(content.size()));
             response.set(http::field::cache_control, "no-cache");
 
-            // Для GET-запроса добавляем тело, для HEAD - только заголовки
             if (req.method() == http::verb::get)
             {
                 response.body() = content;
@@ -747,7 +680,6 @@ namespace http_handler
         response.set(http::field::content_type, "application/json");
         response.set(http::field::cache_control, "no-cache");
 
-        // Для HEAD запросов не добавляем тело
         if (req.method() != http::verb::head)
         {
             std::string body = json::serialize(std::forward<T>(data));
@@ -758,7 +690,6 @@ namespace http_handler
         return response;
     }
 
-    // Существующие методы для карт остаются без изменений
     StringResponse RequestHandler::GetMapsList(const StringRequest &req)
     {
         json::array maps_array;
@@ -856,13 +787,11 @@ namespace http_handler
 
     double RequestHandler::GetMapDogSpeed(const model::Map &map)
     {
-        // Если у карты есть своя скорость, используем её
         if (map.HasDogSpeed())
         {
             return map.GetDogSpeed();
         }
 
-        // Иначе используем скорость по умолчанию из игры
         return game_.GetDefaultDogSpeed();
     }
 

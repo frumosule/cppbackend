@@ -71,7 +71,6 @@ struct Args {
     return args;
 }
 
-// Класс для периодических тиков (добавьте перед main)
 class Ticker : public std::enable_shared_from_this<Ticker> {
 public:
     using Strand = net::strand<net::io_context::executor_type>;
@@ -114,9 +113,7 @@ private:
             
             try {
                 handler_(delta);
-            } catch (...) {
-                // Игнорируем исключения в обработчике
-            }
+            } catch (...) {}
             ScheduleTick();
         }
     }
@@ -142,23 +139,15 @@ int main(int argc, const char* argv[]) {
         
         auto args = *args_opt;
 
-        // Настройка логирования
         setup_logging();
-        
-        // 1. Загружаем карту из файла и построить модель игры
+    
         model::Game game = json_loader::LoadGame(args.config_file);
-        
-        // 2. Создаем менеджер игровых сессий
         model::GameSessionManager session_manager(game);
-        
-        // Устанавливаем режим случайного спавна
         session_manager.SetRandomSpawn(args.randomize_spawn_points);
         
-        // 3. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();
         net::io_context ioc(num_threads);
 
-        // 4. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
         net::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number) {
             if (!ec) {
@@ -166,19 +155,13 @@ int main(int argc, const char* argv[]) {
             }
         });
 
-        // 5. Создаём обработчик HTTP-запросов
         http_handler::RequestHandler base_handler{game, session_manager, args.www_root};
         
-        // Настраиваем режим авто-тиков
         std::shared_ptr<Ticker> ticker;
         if (args.tick_period > 0) {
             base_handler.SetAutoTickMode(true);
-            std::cout << "Auto-tick mode enabled with period: " << args.tick_period << "ms" << std::endl;
-            
-            // Создаем strand для безопасного доступа к игровому состоянию
             auto game_strand = net::make_strand(ioc);
             
-            // Запускаем автоматические тики
             auto period = std::chrono::milliseconds(args.tick_period);
             ticker = std::make_shared<Ticker>(game_strand, period,
                 [&session_manager](std::chrono::milliseconds delta) {
@@ -186,18 +169,11 @@ int main(int argc, const char* argv[]) {
                 });
             ticker->Start();
         } else {
-            std::cout << "Manual tick mode (use POST /api/v1/game/tick)" << std::endl;
             base_handler.SetAutoTickMode(false);
         }
         
-        if (args.randomize_spawn_points) {
-            std::cout << "Random spawn points enabled" << std::endl;
-        }
-
-        // Оборачиваем в логирующий декоратор
         LoggingRequestHandler<http_handler::RequestHandler> handler{base_handler};
 
-        // 6. Запустить обработчик HTTP-запросов
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
         
@@ -207,12 +183,10 @@ int main(int argc, const char* argv[]) {
             handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
         });
 
-        // 7. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
         
-        // Останавливаем тикер при выходе
         if (ticker) {
             ticker->Stop();
         }

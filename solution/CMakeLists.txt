@@ -30,7 +30,6 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# Добавляем файлы логирования
 add_executable(game_server
     src/main.cpp
     src/http_server.cpp
@@ -47,7 +46,6 @@ add_executable(game_server
     src/game_session_manager.h
     src/game_session_manager.cpp
     
-    # Новые файлы для логирования
     src/logging/formatter.h
     src/logging/formatter.cpp
     src/logging/logger.h
@@ -55,7 +53,6 @@ add_executable(game_server
     src/logging/logging_handler.h
 )
 
-# Указываем include директории
 target_include_directories(game_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -72,7 +69,6 @@ if(WIN32)
     target_link_libraries(game_server PRIVATE ws2_32 mswsock)
 endif()
 
-# Добавляем флаги компиляции для лучшей отладки
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(game_server PRIVATE BOOST_LOG_DYN_LINK)
     target_compile_options(game_server PRIVATE -g -O0)
@@ -80,7 +76,6 @@ else()
     target_compile_options(game_server PRIVATE -O2 -DNDEBUG)
 endif()
 
-# Предупреждения компилятора
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(game_server PRIVATE -Wall -Wextra -Wpedantic)
 endif()

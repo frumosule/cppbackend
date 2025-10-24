@@ -34,7 +34,6 @@ private:
     std::mt19937_64 generator_{std::random_device{}()};
     bool randomize_spawn_ = false;
     
-    // Генерация токенов
     std::random_device random_device_;  
     std::mt19937_64 generator1_{random_device_()};
     std::mt19937_64 generator2_{random_device_()};
@@ -46,7 +45,6 @@ private:
     std::shared_ptr<GameSession> CreateSessionUnsafe(const Map::Id& map_id);
     std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string& auth_token);
     
-    // Новая логика движения как в образце
     struct PointHash {
         size_t operator()(const Point& p) const {
             return std::hash<int>{}(p.x) ^ (std::hash<int>{}(p.y) << 1);

@@ -35,10 +35,9 @@ void setup_logging() {
     auto sink = logging::add_console_log(
         std::cout,
         logging::keywords::auto_flush = true,
-        logging::keywords::format = JsonFormatter{}  // ← ПРЯМО ЗДЕСЬ
+        logging::keywords::format = JsonFormatter{}  
     );
     
-    // Устанавливаем уровень логирования
     logging::core::get()->set_filter(
         logging::trivial::severity >= logging::trivial::info
     );

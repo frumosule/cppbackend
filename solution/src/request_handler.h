@@ -39,31 +39,26 @@ private:
     std::unordered_map<std::string, std::string> mime_types_;
     bool auto_tick_mode_;
 
-    // Обработчики запросов
     StringResponse HandleApiRequest(StringRequest&& req);
     StringResponse HandleStaticRequest(StringRequest&& req);
     
-    // API endpoints
     StringResponse HandleJoinGame(StringRequest&& req);
     StringResponse HandleGetPlayers(StringRequest&& req);
     StringResponse HandlePlayerAction(StringRequest&& req);
     StringResponse HandleGameState(StringRequest&& req);
     StringResponse HandleGameTick(StringRequest &&req);
-    
-    // Вспомогательные методы
+
     std::string UrlDecode(const std::string& url);
     bool IsPathWithinRoot(const fs::path& path, const fs::path& root);
     std::string GetMimeType(const std::string& extension);
     std::optional<std::string> ExtractAuthToken(const StringRequest& req);
     double GetMapDogSpeed(const model::Map& map);
-    
-    // Создание ответов
+
     StringResponse MakeStaticFileResponse(const fs::path& file_path, const StringRequest& req);
     StringResponse MakeErrorResponse(http::status status, const std::string& message, const StringRequest& req);
     template <typename T>
     StringResponse MakeJsonResponse(http::status status, T&& data, const StringRequest& req);
-    
-    // Существующие методы для карт
+
     StringResponse GetMapsList(const StringRequest& req);
     StringResponse GetMapById(const std::string& map_id, const StringRequest& req);
     boost::json::value SerializeMap(const model::Map& map);
