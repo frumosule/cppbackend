@@ -20,7 +20,7 @@
                 "CMAKE_BUILD_TYPE": "Release"
             },
             "toolchainFile": "conan_toolchain.cmake",
-            "binaryDir": "C:\\Users\\User\\cppbackend\\sprint1\\problems\\final_task\\solution"
+            "binaryDir": "C:\\Users\\User\\cppbackend\\sprint3\\problems\\flamegraph\\solution"
         }
     ],
     "buildPresets": [

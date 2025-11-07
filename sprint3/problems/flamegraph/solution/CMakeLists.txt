@@ -14,7 +14,7 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 endif()
 
 # Явно указываем необходимые компоненты Boost
-find_package(Boost 1.84.0 REQUIRED COMPONENTS system json)
+find_package(Boost 1.84.0 REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
