@@ -13,7 +13,8 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
   include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 endif()
 
-find_package(Boost 1.84.0 REQUIRED)
+# Явно указываем необходимые компоненты Boost
+find_package(Boost 1.84.0 REQUIRED COMPONENTS system json)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
@@ -35,7 +36,11 @@ add_executable(game_server
         src/request_handler.h
 )
 
-target_link_libraries(game_server PRIVATE Threads::Threads Boost::system Boost::json)
+target_link_libraries(game_server PRIVATE 
+    Threads::Threads 
+    Boost::system 
+    Boost::json
+)
 
 if(WIN32)
 target_link_libraries(game_server PRIVATE ws2_32 mswsock)
