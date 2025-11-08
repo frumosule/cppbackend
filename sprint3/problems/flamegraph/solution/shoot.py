@@ -32,12 +32,9 @@ def stop(process, wait=False):
         if wait:
             process.wait()
         process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
 
 def shoot(ammo):
+    # Используем полный URL с протоколом
     hit = run(f'curl -s "{ammo}"', output=subprocess.DEVNULL)
     time.sleep(COOLDOWN)
     stop(hit, wait=True)
@@ -50,52 +47,53 @@ def make_shots():
 
 def main():
     server_command = start_server()
-    server = run(server_command)
     
-    time.sleep(2)
+    # Запускаем сервер
+    server = run(server_command, output=subprocess.DEVNULL)
+    time.sleep(2)  # Даем серверу время на запуск
     
-    # Check if server is running
+    # Проверяем, что сервер запустился
     if server.poll() is not None:
-        print("Server failed to start")
+        print("Server failed to start!")
         return
     
+    print(f"Server started with PID: {server.pid}")
+    
+    # Запускаем perf record с явным указанием выходного файла
     perf_command = f'perf record -g -p {server.pid} -o perf.data --call-graph dwarf'
     perf_run = run(perf_command)
     
+    # Генерируем нагрузку
     make_shots()
     
-    # Stop perf recording
-    if perf_run.poll() is None:
-        perf_run.send_signal(signal.SIGINT)
-        perf_run.wait(timeout=10)
+    # Останавливаем perf record (отправляем SIGINT)
+    perf_run.send_signal(signal.SIGINT)
+    perf_run.wait()
     
-    # Stop server
+    # Останавливаем сервер
     stop(server, wait=True)
     
-    # Check if perf.data was created
+    time.sleep(1)
+    
+    # Проверяем, что perf.data создан
     if not os.path.exists('perf.data'):
-        print("perf.data was not created")
+        print("perf.data not found!")
         return
     
     print("Processing perf data...")
     
-    # Ensure FlameGraph tools exist
-    if not os.path.exists('./FlameGraph/stackcollapse-perf.pl'):
-        print("FlameGraph tools not found")
-        return
-    
+    # Создаем флеймграф
     try:
+        # perf script -> stackcollapse -> flamegraph
         p1 = subprocess.Popen([
             'perf', 'script', 
-            '-i', 'perf.data',
-            '--demangle'
+            '-i', 'perf.data'
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+        
         p2 = subprocess.Popen([
-            './FlameGraph/stackcollapse-perf.pl', 
-            '--demangle'
+            './FlameGraph/stackcollapse-perf.pl'
         ], stdin=p1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+        
         with open('graph.svg', 'w', encoding='utf-8') as out_file:
             p3 = subprocess.Popen([
                 './FlameGraph/flamegraph.pl',
@@ -103,36 +101,41 @@ def main():
                 '--width', '1600',
                 '--colors', 'java'
             ], stdin=p2.stdout, stdout=out_file, stderr=subprocess.PIPE)
-
+        
+        # Закрываем неиспользуемые pipe'ы
         p1.stdout.close()
         p2.stdout.close()
         
-        # Wait for all processes to complete
-        p1.wait(timeout=30)
-        p2.wait(timeout=30)
-        p3.wait(timeout=30)
+        # Ждем завершения всех процессов
+        p1.wait()
+        p2.wait()
+        p3.wait()
         
-        # Check for errors
+        # Проверяем ошибки
         if p1.returncode != 0:
-            stderr = p1.stderr.read().decode() if p1.stderr else ''
-            print(f"perf script failed: {stderr}")
-        
+            print(f"perf script error: {p1.stderr.read().decode()}")
         if p2.returncode != 0:
-            stderr = p2.stderr.read().decode() if p2.stderr else ''
-            print(f"stackcollapse failed: {stderr}")
-        
+            print(f"stackcollapse error: {p2.stderr.read().decode()}")
         if p3.returncode != 0:
-            stderr = p3.stderr.read().decode() if p3.stderr else ''
-            print(f"flamegraph failed: {stderr}")
-
-        if os.path.exists('graph.svg'):
-            print('Flame graph created successfully')
-        else:
-            print('Failed to create flame graph')
-
-    except subprocess.TimeoutExpired:
-        print("Processing timed out")
+            print(f"flamegraph error: {p3.stderr.read().decode()}")
+            
     except Exception as e:
-        print(f"Error during processing: {e}")
-
+        print(f"Error creating flamegraph: {e}")
+        return
+    
+    # Проверяем содержимое graph.svg
+    if os.path.exists('graph.svg'):
+        with open('graph.svg', 'r') as f:
+            content = f.read()
+            if 'http_handler::RequestHandler' in content:
+                print("✓ Success: http_handler::RequestHandler found in flamegraph")
+            else:
+                print("✗ Warning: http_handler::RequestHandler not found in flamegraph")
+                print("This might indicate that:")
+                print("1. Server binary was built without debug symbols")
+                print("2. Function names are different")
+                print("3. perf didn't capture the samples properly")
+    else:
+        print("graph.svg not created!")
+    
     print('Job done')
