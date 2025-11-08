@@ -46,39 +46,31 @@ def main():
     server_command = start_server()
     server = run(server_command)
     
-    # Даем серверу время на запуск
     time.sleep(2)
     
-    # Запускаем perf record с правильными параметрами
-    perf_command = f'sudo perf record -g -p {server.pid} -o perf.data --call-graph dwarf'
+    perf_command = f'perf record -g -p {server.pid} -o perf.data --call-graph dwarf'
     perf_run = run(perf_command)
     
     make_shots()
     
-    # Останавливаем perf
     stop(perf_run, wait=True)
-    # Останавливаем сервер
     stop(server, wait=True)
     
     time.sleep(1)
 
-    # Обрабатываем результаты perf
     print("Processing perf data...")
     
-    # perf script с деманглингом символов
     p1 = subprocess.Popen([
-        'sudo', 'perf', 'script', 
+        'perf', 'script', 
         '-i', 'perf.data',
         '--demangle'
     ], stdout=subprocess.PIPE)
 
-    # stackcollapse
     p2 = subprocess.Popen([
         './FlameGraph/stackcollapse-perf.pl', 
         '--demangle'
     ], stdin=p1.stdout, stdout=subprocess.PIPE)
 
-    # flamegraph
     with open('graph.svg', 'w', encoding='utf-8') as out_file:
         p3 = subprocess.Popen([
             './FlameGraph/flamegraph.pl',
