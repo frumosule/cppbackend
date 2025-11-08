@@ -1,0 +1,71 @@
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/maps
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/maps/map1
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/maps/map2
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/game/state
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/game/player
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/game/level
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: application/json]
+[Content-Type: application/json]
+
+/api/v1/game/actions
+{"actions": ["move_forward", "turn_left", "turn_right", "shoot"]}
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/version
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/health
+
+[Connection: close]
+[Host: localhost]
+[User-Agent: Test-Tank]
+[Accept: */*]
+
+/api/v1/status

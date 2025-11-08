@@ -1,0 +1,17 @@
+overload:
+  enabled: false
+phantom:
+  address: 127.0.0.1:8080
+  ammofile: /var/loadtest/ammo.txt
+  ammo_type: uri
+  load_profile:
+    load_type: rps
+    schedule: const(100000, 1m)        # экстремальная нагрузка 100000 rps в течение 1 минуты
+  ssl: false
+autostop:
+  autostop:
+    - http(5xx,90%,10s)                # остановка при достижении 90% ошибок 5xx
+console:
+  enabled: true
+telegraf:
+  enabled: false

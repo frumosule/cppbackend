@@ -13,7 +13,7 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
   include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 endif()
 
-find_package(Boost 1.84.0 REQUIRED)
+find_package(Boost 1.80.0 REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
