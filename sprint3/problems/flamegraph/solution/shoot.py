@@ -43,12 +43,8 @@ def make_shots():
     print('Shooting complete')
 
 def main():
-    flamegraph_dir = './FlameGraph'
-    if os.path.exists(flamegraph_dir):
-        print("FlameGraph directory exists, continuing...")
-    else:
-        print("Warning: FlameGraph directory not found!")
-    
+    setup_flamegraph()
+
     server_command = start_server()
     server = run(server_command, output=subprocess.DEVNULL)
     
