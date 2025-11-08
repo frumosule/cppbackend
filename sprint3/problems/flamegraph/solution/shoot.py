@@ -3,14 +3,15 @@ import subprocess
 import time
 import random
 import shlex
+import os
 
 RANDOM_LIMIT = 1000
 SEED = 123456789
 random.seed(SEED)
 
 AMMUNITION = [
-    'localhost:8080/api/v1/maps/map1',
-    'localhost:8080/api/v1/maps'
+    'http://localhost:8080/api/v1/maps/map1',
+    'http://localhost:8080/api/v1/maps'
 ]
 
 SHOOT_COUNT = 100
@@ -31,7 +32,7 @@ def stop(process, wait=False):
     process.terminate()
 
 def shoot(ammo):
-    hit = run('curl ' + ammo, output=subprocess.DEVNULL)
+    hit = run(f'curl -s "{ammo}"', output=subprocess.DEVNULL)
     time.sleep(COOLDOWN)
     stop(hit, wait=True)
 
@@ -41,27 +42,56 @@ def make_shots():
         shoot(AMMUNITION[ammo_number])
     print('Shooting complete')
 
-server = run(start_server())
-perf_run  = subprocess.Popen(shlex.split(f' sudo perf record -g -p {server.pid} -o ./perf.data'))
-make_shots()
-stop(server)
-time.sleep(1)
+def main():
+    server_command = start_server()
+    server = run(server_command)
+    
+    # Даем серверу время на запуск
+    time.sleep(2)
+    
+    # Запускаем perf record с правильными параметрами
+    perf_command = f'sudo perf record -g -p {server.pid} -o perf.data --call-graph dwarf'
+    perf_run = run(perf_command)
+    
+    make_shots()
+    
+    # Останавливаем perf
+    stop(perf_run, wait=True)
+    # Останавливаем сервер
+    stop(server, wait=True)
+    
+    time.sleep(1)
 
-# perf script
-p1 = subprocess.Popen(['sudo', 'perf', 'script', '-f', '-i', 'perf.data'], stdout=subprocess.PIPE)
+    # Обрабатываем результаты perf
+    print("Processing perf data...")
+    
+    # perf script с деманглингом символов
+    p1 = subprocess.Popen([
+        'sudo', 'perf', 'script', 
+        '-i', 'perf.data',
+        '--demangle'
+    ], stdout=subprocess.PIPE)
 
-# stackcollapse
-p2 = subprocess.Popen(['./FlameGraph/stackcollapse-perf.pl'], stdin=p1.stdout, stdout=subprocess.PIPE)
+    # stackcollapse
+    p2 = subprocess.Popen([
+        './FlameGraph/stackcollapse-perf.pl', 
+        '--demangle'
+    ], stdin=p1.stdout, stdout=subprocess.PIPE)
 
-# flamegraph -> graph.svg
-with open('graph.svg', 'w', encoding='utf-8') as out_file:
-    p3 = subprocess.Popen(['./FlameGraph/flamegraph.pl'], stdin=p2.stdout, stdout=out_file)
+    # flamegraph
+    with open('graph.svg', 'w', encoding='utf-8') as out_file:
+        p3 = subprocess.Popen([
+            './FlameGraph/flamegraph.pl',
+            '--title', 'CPU Flame Graph',
+            '--width', '1600',
+            '--colors', 'java'
+        ], stdin=p2.stdout, stdout=out_file)
 
-# Close unused pipes
-p1.stdout.close()
-p2.stdout.close()
+    p1.stdout.close()
+    p2.stdout.close()
+    p3.wait()
 
-# Wait final process
-p3.wait()
+    print('Job done')
 
-print('Job done')
+if __name__ == '__main__':
+    main()
