@@ -82,7 +82,7 @@ perf_script = subprocess.Popen(
 
 # Обрабатываем вывод через скрипты FlameGraph
 stackcollapse = subprocess.Popen(
-    ['./FlameGraph/stackcollapse-perf.pl'],
+    ['/app/FlameGraph/stackcollapse-perf.pl'],
     stdin=perf_script.stdout,
     stdout=subprocess.PIPE,
     stderr=subprocess.DEVNULL
