@@ -43,8 +43,6 @@ def make_shots():
     print('Shooting complete')
 
 def main():
-    setup_flamegraph()
-
     server_command = start_server()
     server = run(server_command, output=subprocess.DEVNULL)
     
@@ -86,6 +84,3 @@ def main():
     p3.wait()
 
     print('Job done')
-
-if __name__ == '__main__':
-    main()
