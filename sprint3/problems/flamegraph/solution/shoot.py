@@ -9,8 +9,8 @@ SEED = 123456789
 random.seed(SEED)
 
 AMMUNITION = [
-    'http://localhost:8080/api/v1/maps/map1',
-    'http://localhost:8080/api/v1/maps'
+    'localhost:8080/api/v1/maps/map1',
+    'localhost:8080/api/v1/maps'
 ]
 
 SHOOT_COUNT = 100
@@ -31,7 +31,7 @@ def stop(process, wait=False):
     process.terminate()
 
 def shoot(ammo):
-    hit = run(f'curl -s "{ammo}"', output=subprocess.DEVNULL)
+    hit = run('curl ' + ammo, output=subprocess.DEVNULL)
     time.sleep(COOLDOWN)
     stop(hit, wait=True)
 
@@ -41,30 +41,31 @@ def make_shots():
         shoot(AMMUNITION[ammo_number])
     print('Shooting complete')
 
-# Запускаем сервер
 server = run(start_server())
-time.sleep(2)
-
-# Запускаем perf record (пробуем без sudo)
-perf_run = subprocess.Popen(shlex.split(f'perf record -g -p {server.pid} -o perf.data'))
-
+perf_run  = subprocess.Popen(shlex.split(f' sudo perf record -g -p {server.pid} -o ./perf.data'))
 make_shots()
 
-# Останавливаем в правильном порядке
 stop(perf_run, wait=True)
-time.sleep(2)
-stop(server, wait=True)
+time.sleep(2) 
+
+stop(server)
 time.sleep(1)
 
-# Генерируем флеймграф (пробуем без sudo)
-p1 = subprocess.Popen(['perf', 'script', '-i', 'perf.data'], stdout=subprocess.PIPE)
+# perf script
+p1 = subprocess.Popen(['sudo', 'perf', 'script', '-f', '-i', 'perf.data'], stdout=subprocess.PIPE)
+
+# stackcollapse
 p2 = subprocess.Popen(['./FlameGraph/stackcollapse-perf.pl'], stdin=p1.stdout, stdout=subprocess.PIPE)
 
+# flamegraph -> graph.svg
 with open('graph.svg', 'w', encoding='utf-8') as out_file:
     p3 = subprocess.Popen(['./FlameGraph/flamegraph.pl'], stdin=p2.stdout, stdout=out_file)
 
+# Close unused pipes
 p1.stdout.close()
 p2.stdout.close()
+
+# Wait final process
 p3.wait()
 
 print('Job done')
