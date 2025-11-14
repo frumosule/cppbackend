@@ -8,17 +8,19 @@
 namespace model
 {
 
-     std::shared_ptr<GameSession> GameSessionManager::FindSession(const Map::Id &map_id)
+    std::shared_ptr<GameSession> GameSessionManager::FindSession(const Map::Id &map_id)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto session_data = FindSessionUnsafe(map_id);
-        if (!session_data) {
+        if (!session_data)
+        {
             return nullptr;
         }
-        
+
         // Создаем GameSession на основе SessionData
         auto game_session = std::make_shared<GameSession>(map_id);
-        for (const auto& [player_id, player] : session_data->players) {
+        for (const auto &[player_id, player] : session_data->players)
+        {
             game_session->AddPlayer(player);
         }
         // ДОБАВИТЬ: передача lost_objects в GameSession если нужно
@@ -137,56 +139,56 @@ namespace model
     }
 
     std::pair<double, double> GameSessionManager::GetRandomPositionOnRoad(const Map::Id &map_id)
+{
+    auto map = game_.FindMap(map_id);
+    if (!map)
     {
-        auto map = game_.FindMap(map_id);
-        if (!map)
+        throw std::runtime_error("Map not found for getting random position");
+    }
+
+    const auto &roads = map->GetRoads();
+    if (roads.empty())
+    {
+        throw std::runtime_error("No roads on the map");
+    }
+
+    // Если включен случайный спавн
+    if (randomize_spawn_)
+    {
+        // Случайный выбор дороги
+        std::uniform_int_distribution<size_t> road_dist(0, roads.size() - 1);
+        const auto &road = roads[road_dist(generator_)];
+
+        const auto &start = road.GetStart();
+        const auto &end = road.GetEnd();
+
+        if (road.IsHorizontal())
         {
-            throw std::runtime_error("Map not found for getting random position");
-        }
-
-        const auto &roads = map->GetRoads();
-        if (roads.empty())
-        {
-            throw std::runtime_error("No roads on the map");
-        }
-
-        // Если включен случайный спавн
-        if (randomize_spawn_)
-        {
-            // Случайный выбор дороги
-            std::uniform_int_distribution<size_t> road_dist(0, roads.size() - 1);
-            const auto &road = roads[road_dist(generator_)];
-
-            const auto &start = road.GetStart();
-            const auto &end = road.GetEnd();
-
-            if (road.IsHorizontal())
-            {
-                // Случайная позиция на горизонтальной дороге
-                int min_x = std::min(start.x, end.x);
-                int max_x = std::max(start.x, end.x);
-                std::uniform_real_distribution<double> pos_dist(min_x + 0.4, max_x - 0.4);
-                double x = pos_dist(generator_);
-                return {x, static_cast<double>(start.y) + 0.4};
-            }
-            else
-            {
-                // Случайная позиция на вертикальной дороге
-                int min_y = std::min(start.y, end.y);
-                int max_y = std::max(start.y, end.y);
-                std::uniform_real_distribution<double> pos_dist(min_y + 0.4, max_y - 0.4);
-                double y = pos_dist(generator_);
-                return {static_cast<double>(start.x) + 0.4, y};
-            }
+            // Случайная позиция на горизонтальной дороге
+            int min_x = std::min(start.x, end.x);
+            int max_x = std::max(start.x, end.x);
+            std::uniform_real_distribution<double> pos_dist(min_x + 0.4, max_x - 0.4);
+            double x = pos_dist(generator_);
+            return {x, static_cast<double>(start.y) + 0.4};
         }
         else
         {
-            // Стандартная логика - начало первой дороги
-            const auto &first_road = roads[0];
-            const auto &start = first_road.GetStart();
-            return {static_cast<double>(start.x), static_cast<double>(start.y)};
+            // Случайная позиция на вертикальной дороге
+            int min_y = std::min(start.y, end.y);
+            int max_y = std::max(start.y, end.y);
+            std::uniform_real_distribution<double> pos_dist(min_y + 0.4, max_y - 0.4);
+            double y = pos_dist(generator_);
+            return {static_cast<double>(start.x) + 0.4, y};
         }
     }
+    else
+    {
+        // Стандартная логика - начало первой дороги
+        const auto &first_road = roads[0];
+        const auto &start = first_road.GetStart();
+        return {static_cast<double>(start.x) + 0.4, static_cast<double>(start.y) + 0.4}; // ИСПРАВЛЕНО: добавляем смещение
+    }
+}
 
     void GameSessionManager::GenerateLootForSession(SessionData &session, const Map::Id &map_id, int time_delta_ms)
     {
@@ -208,38 +210,37 @@ namespace model
         // Генерируем новые предметы
         for (unsigned i = 0; i < new_loot_count; ++i)
         {
-            // ИСПРАВЛЕНО: Создаем LostObject с конструктором
             LostObject new_obj(
-                session.next_lost_object_id++,  // id
-                0,                              // type (будет установлен ниже)
-                Point{0, 0}                     // position (будет установлен ниже)
+                session.next_lost_object_id++, // id
+                0,                             // type (будет установлен ниже)
+                Point{0.0, 0.0}                // position (будет установлен ниже) - ИСПРАВЛЕНО: double вместо int
             );
 
             // Случайный тип предмета (от 0 до N-1)
             std::uniform_int_distribution<int> type_dist(0, map->GetLootTypesCount() - 1);
             new_obj.type = type_dist(generator_);
 
-            // Случайная позиция на карте
-            Point pos = map->GetRandomPoint(generator_);
-            new_obj.position = pos;
+            // Случайная позиция на карте - ИСПРАВЛЕНО: используем метод, возвращающий double координаты
+            auto [pos_x, pos_y] = GetRandomPositionOnRoad(map_id);
+            new_obj.position = Point{pos_x, pos_y};
 
             session.lost_objects[new_obj.id] = new_obj;
 
             std::cout << "Generated loot: id=" << new_obj.id
                       << ", type=" << new_obj.type
-                      << ", pos=(" << pos.x << "," << pos.y << ")" << std::endl;
+                      << ", pos=(" << pos_x << "," << pos_y << ")" << std::endl;
         }
     }
 
-    const std::unordered_map<LostObject::Id, LostObject>& GameSessionManager::GetLostObjects(const Map::Id& map_id) const
+    const std::unordered_map<LostObject::Id, LostObject> &GameSessionManager::GetLostObjects(const Map::Id &map_id) const
     {
         static std::unordered_map<LostObject::Id, LostObject> empty;
 
-        std::lock_guard<std::mutex> lock(mutex_);  // ИСПРАВЛЕНО: mutex_ теперь mutable
+        std::lock_guard<std::mutex> lock(mutex_); // ИСПРАВЛЕНО: mutex_ теперь mutable
         auto it = sessions_.find(map_id);
         if (it != sessions_.end())
         {
-            return it->second->lost_objects;  // ИСПРАВЛЕНО: it->second теперь shared_ptr<SessionData>
+            return it->second->lost_objects; // ИСПРАВЛЕНО: it->second теперь shared_ptr<SessionData>
         }
         return empty;
     }
@@ -248,11 +249,10 @@ namespace model
     {
         // ИСПРАВЛЕНО: преобразуем double секунды в миллисекунды
         auto base_interval_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::duration<double>(base_interval)
-        );
-        
+            std::chrono::duration<double>(base_interval));
+
         loot_generator_ = std::make_unique<loot_gen::LootGenerator>(
-            base_interval_ms,  // ИСПРАВЛЕНО: передаем миллисекунды
+            base_interval_ms, // ИСПРАВЛЕНО: передаем миллисекунды
             probability,
             [this]()
             {
@@ -588,7 +588,7 @@ namespace model
         return {true, {end_x, y}};
     }
 
-      std::shared_ptr<GameSessionManager::SessionData> GameSessionManager::FindSessionUnsafe(const Map::Id &map_id)
+    std::shared_ptr<GameSessionManager::SessionData> GameSessionManager::FindSessionUnsafe(const Map::Id &map_id)
     {
         auto it = sessions_.find(map_id);
         return it != sessions_.end() ? it->second : nullptr;
@@ -596,7 +596,7 @@ namespace model
 
     std::shared_ptr<GameSessionManager::SessionData> GameSessionManager::CreateSessionUnsafe(const Map::Id &map_id)
     {
-        auto session = std::make_shared<SessionData>();  // ИСПРАВЛЕНО: создаем SessionData, а не GameSession
+        auto session = std::make_shared<SessionData>(); // ИСПРАВЛЕНО: создаем SessionData, а не GameSession
         sessions_[map_id] = session;
         return session;
     }

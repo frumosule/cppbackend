@@ -59,10 +59,28 @@ namespace http_handler
             return GetMapsList(req);
         }
 
-        if (req.method() == http::verb::get && target.starts_with("/api/v1/maps/"))
+        if (target.starts_with("/api/v1/maps/"))
         {
             std::string map_id = target.substr(13);
-            return GetMapById(map_id, req);
+
+            // Обрабатываем только GET и HEAD методы для карт
+            if (req.method() == http::verb::get || req.method() == http::verb::head)
+            {
+                return GetMapById(map_id, req);
+            }
+            else
+            {
+                // Для всех других методов возвращаем 405
+                StringResponse response(http::status::method_not_allowed, req.version());
+                response.set(http::field::content_type, "application/json");
+                response.set(http::field::allow, "GET, HEAD");
+                response.set(http::field::cache_control, "no-cache");
+                response.body() = json::serialize(json::object{
+                    {"code", "invalidMethod"},
+                    {"message", "Invalid method"}});
+                response.prepare_payload();
+                return response;
+            }
         }
 
         // Новые endpoints для игры
@@ -621,15 +639,15 @@ namespace http_handler
         auto current_player = session_manager_.FindPlayerByToken(*auth_token);
         if (current_player)
         {
-            const auto& lost_objects = session_manager_.GetLostObjects(current_player->GetMapId());
+            const auto &lost_objects = session_manager_.GetLostObjects(current_player->GetMapId());
             for (const auto &[obj_id, lost_obj] : lost_objects)
             {
                 json::object obj_info;
                 obj_info["type"] = lost_obj.type;
 
                 json::array pos_array;
-                pos_array.push_back(lost_obj.position.x);
-                pos_array.push_back(lost_obj.position.y);
+                pos_array.push_back(static_cast<double>(lost_obj.position.x));
+                pos_array.push_back(static_cast<double>(lost_obj.position.y));
                 obj_info["pos"] = pos_array;
 
                 lost_objects_json[std::to_string(obj_id)] = obj_info;
@@ -796,6 +814,23 @@ namespace http_handler
 
     StringResponse RequestHandler::GetMapById(const std::string &map_id, const StringRequest &req)
     {
+        // Для HEAD запроса возвращаем только заголовки
+        if (req.method() == http::verb::head)
+        {
+            auto map = game_.FindMap(model::Map::Id(map_id));
+            if (!map)
+            {
+                return MakeJsonResponse(http::status::not_found,
+                                        json::object{{"code", "mapNotFound"}, {"message", "Map not found"}}, req);
+            }
+
+            StringResponse response(http::status::ok, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::cache_control, "no-cache");
+            return response;
+        }
+
+        // Для GET запроса возвращаем полный ответ
         auto map = game_.FindMap(model::Map::Id(map_id));
         if (!map)
         {
@@ -835,9 +870,12 @@ namespace http_handler
 
         // НОВОЕ: Добавляем lootTypes из сохраненной конфигурации
         auto map_id = map.GetId();
-        if (auto it = map_loot_types_.find(map_id); it != map_loot_types_.end()) {
+        if (auto it = map_loot_types_.find(map_id); it != map_loot_types_.end())
+        {
             map_json["lootTypes"] = it->second;
-        } else {
+        }
+        else
+        {
             map_json["lootTypes"] = json::array{};
         }
 
