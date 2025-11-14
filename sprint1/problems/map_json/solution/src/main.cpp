@@ -1,7 +1,6 @@
 #include "sdk.h"
-//
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/asio/io_context.hpp>
 #include <iostream>
 #include <thread>
 
@@ -46,17 +45,17 @@ int main(int argc, const char* argv[]) {
         net::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number) {
             if (!ec) {
+                std::cout << "Signal "sv << signal_number << " received"sv << std::endl;
                 ioc.stop();
             }
-        });
+            });
 
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
         http_handler::RequestHandler handler{game};
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const auto address = net::ip::make_address("0.0.0.0");
-        constexpr unsigned short port = 8080;
-        
+        constexpr net::ip::port_type port = 8080;
         http_server::ServeHttp(ioc, {address, port}, [&handler](auto&& req, auto&& send) {
             handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
         });
@@ -68,6 +67,8 @@ int main(int argc, const char* argv[]) {
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
+
+        //std::cout << "Server has started..."sv << std::endl;
     } catch (const std::exception& ex) {
         std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;

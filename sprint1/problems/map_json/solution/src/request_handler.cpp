@@ -1,92 +1,58 @@
 #include "request_handler.h"
 
+#include <ranges>
+
 namespace http_handler {
 
-RequestHandler::RequestHandler(model::Game& game) : game_(game) {
+std::vector<std::string_view> SplitRequest(std::string_view body) {
+    std::vector<std::string_view> result;
+    size_t start = 0;
+    size_t end = body.find("/");
+    while (end != std::string_view::npos) {
+        result.push_back(body.substr(start, end - start));
+        start = end + 1;
+        end = body.find("/", start);
+    }
+    result.push_back(body.substr(start, body.length() - start));
+    return result;
 }
 
-StringResponse RequestHandler::HandleRequest(StringRequest&& req) {
-    const auto target = std::string(req.target());
-    
-    if (req.method() == http::verb::get && target == "/api/v1/maps") {
-        return GetMapsList(req);
-    }
-    
-    if (req.method() == http::verb::get && target.starts_with("/api/v1/maps/")) {
-        std::string map_id = target.substr(13);
-        return GetMapById(map_id, req);
-    }
-    
-    if (target.starts_with("/api/")) {
-        return MakeJsonResponse(http::status::bad_request, 
-                               json::object{{"code", "badRequest"}, {"message", "Bad request"}}, req);
-    }
-    
-    return MakeJsonResponse(http::status::not_found,
-                           json::object{{"code", "pageNotFound"}, {"message", "Page not found"}}, req);
-}
-
-StringResponse RequestHandler::GetMapsList(const StringRequest& req) {
-    json::array maps_array;
-    for (const auto& map : game_.GetMaps()) {
-        maps_array.push_back(json::object{
-            {"id", *map.GetId()},
-            {"name", map.GetName()}
-        });
-    }
-    return MakeJsonResponse(http::status::ok, maps_array, req);
-}
-
-StringResponse RequestHandler::GetMapById(const std::string& map_id, const StringRequest& req) {
-    auto map = game_.FindMap(model::Map::Id(map_id));
-    if (!map) {
-        return MakeJsonResponse(http::status::not_found,
-                               json::object{{"code", "mapNotFound"}, {"message", "Map not found"}}, req);
-    }
-    
-    json::object map_json;
-    map_json["id"] = *map->GetId();
-    map_json["name"] = map->GetName();
-    
-    json::array roads_array;
+json::object MapToJSON(const model::Map* map) {
+    json::object obj;
+    obj["id"] = *map->GetId();
+    obj["name"] = map->GetName();
+    json::array roads;
     for (const auto& road : map->GetRoads()) {
-        json::object road_json;
-        road_json["x0"] = road.GetStart().x;
-        road_json["y0"] = road.GetStart().y;
-        if (road.IsHorizontal()) {
-            road_json["x1"] = road.GetEnd().x;
-        } else {
-            road_json["y1"] = road.GetEnd().y;
-        }
-        roads_array.push_back(road_json);
+        json::object json_road;
+        json_road["x0"] = road.GetStart().x;
+        json_road["y0"] = road.GetStart().y;
+        road.IsHorizontal() ? json_road["x1"] = road.GetEnd().x : json_road["y1"] = road.GetEnd().y;
+        roads.emplace_back(json_road);
     }
-    map_json["roads"] = roads_array;
-    
-    json::array buildings_array;
+    obj.emplace("roads", std::move(roads));
+    json::array buildings;
     for (const auto& building : map->GetBuildings()) {
-        const auto& bounds = building.GetBounds();
-        buildings_array.push_back(json::object{
-            {"x", bounds.position.x},
-            {"y", bounds.position.y},
-            {"w", bounds.size.width},
-            {"h", bounds.size.height}
-        });
+        json::object json_building;
+        auto& bounds = building.GetBounds();
+        json_building["x"] = bounds.position.x;
+        json_building["y"] = bounds.position.y;
+        json_building["w"] = bounds.size.width;
+        json_building["h"] = bounds.size.height;
+        buildings.emplace_back(json_building);
     }
-    map_json["buildings"] = buildings_array;
-    
-    json::array offices_array;
+    obj.emplace("buildings", std::move(buildings));
+    json::array offices;
     for (const auto& office : map->GetOffices()) {
-        offices_array.push_back(json::object{
-            {"id", *office.GetId()},
-            {"x", office.GetPosition().x},
-            {"y", office.GetPosition().y},
-            {"offsetX", office.GetOffset().dx},
-            {"offsetY", office.GetOffset().dy}
-        });
+        json::object json_office;
+        json_office["id"] = *office.GetId();
+        json_office["x"] = office.GetPosition().x;
+        json_office["y"] = office.GetPosition().y;
+        json_office["offsetX"] = office.GetOffset().dx;
+        json_office["offsetY"] = office.GetOffset().dy;
+        offices.emplace_back(json_office);
     }
-    map_json["offices"] = offices_array;
-    
-    return MakeJsonResponse(http::status::ok, map_json, req);
+    obj.emplace("offices", std::move(offices));
+    return obj;
 }
 
 }  // namespace http_handler

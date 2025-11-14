@@ -1,63 +1,87 @@
 #pragma once
 #include "http_server.h"
 #include "model.h"
+
 #include <boost/json.hpp>
-#include <sstream>
 
 namespace http_handler {
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace json = boost::json;
 
-using StringRequest = http_server::StringRequest;
-using StringResponse = http_server::StringResponse;
+using namespace std::literals;
+namespace beast = boost::beast;
+namespace json = boost::json;
+namespace http = beast::http;
+
+struct ContentType {
+    ContentType() = delete;
+    constexpr static std::string_view TEXT_HTML = "text/html"sv;
+    constexpr static std::string_view APP_JSON = "application/json"sv;
+};
+
+std::vector<std::string_view> SplitRequest(std::string_view body);
+
+json::object MapToJSON(const model::Map* map);
 
 class RequestHandler {
 public:
-    explicit RequestHandler(model::Game& game);
+    explicit RequestHandler(model::Game& game)
+        : game_{game} {
+    }
 
     RequestHandler(const RequestHandler&) = delete;
     RequestHandler& operator=(const RequestHandler&) = delete;
 
-    // Оставляем шаблонный operator() в заголовочном файле
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
-        StringRequest string_req;
-        string_req.method(req.method());
-        string_req.target(req.target());
-        string_req.version(req.version());
-        string_req.body() = req.body();
-        string_req.prepare_payload();
-        
-        for (const auto& field : req) {
-            string_req.set(field.name(), field.value());
+        auto request = SplitRequest(std::string_view(req.target().substr(1, req.target().size() - 1)));
+        if (request[0] == "api"sv && request[1] == "v1"sv && request[2] == "maps"sv) {
+            if (request.size() == 3) {
+                auto maps_body = json::array();
+                for (const auto& map : game_.GetMaps()) {
+                    json::object body;
+                    body["id"] = *map.GetId();
+                    body["name"] = map.GetName();
+                    maps_body.emplace_back(std::move(body));
+                }
+                SendResponse(http::status::ok, json::serialize(maps_body), req.version(), std::move(send));
+            }
+            else if (request.size() == 4) {
+                std::string id_text(request[3].data(), request[3].size());
+                model::Map::Id id(id_text);
+                const auto* map = game_.FindMap(id);
+                if (map) {
+                    SendResponse(http::status::ok, json::serialize(MapToJSON(map)), req.version(), std::move(send));
+                }
+                else {
+                    SendResponse(http::status::not_found, MAP_NOT_FOUND_HTTP_BODY, req.version(), std::move(send));
+                }
+            }
+            else {
+                SendBadRequest(std::move(send), req.version());
+            }
         }
-        
-        auto response = HandleRequest(std::move(string_req));
-        send(std::move(response));
+        else {
+            SendBadRequest(std::move(send), req.version());
+        }
     }
 
 private:
-    // Эти методы переносим в .cpp
-    StringResponse HandleRequest(StringRequest&& req);
-    StringResponse GetMapsList(const StringRequest& req);
-    StringResponse GetMapById(const std::string& map_id, const StringRequest& req);
+    model::Game& game_;
 
-    template <typename T>
-    StringResponse MakeJsonResponse(http::status status, T&& data, const StringRequest& req) {
-        StringResponse response(status, req.version());
-        response.set(http::field::content_type, "application/json");
-        response.set(http::field::cache_control, "no-cache");
-        
-        std::stringstream ss;
-        ss << std::forward<T>(data);
-        response.body() = ss.str();
-        
-        response.prepare_payload();
-        return response;
+    constexpr static std::string_view BAD_REQUEST_HTTP_BODY = R"({ "code": "badRequest", "message": "Bad request" })"sv;
+    constexpr static std::string_view MAP_NOT_FOUND_HTTP_BODY = R"({ "code": "mapNotFound", "message": "Map not found" })"sv;
+
+    template<typename Send>
+    void SendBadRequest(Send&& send, unsigned http_version) {
+        SendResponse(http::status::bad_request, BAD_REQUEST_HTTP_BODY, http_version, std::move(send));
     }
 
-    model::Game& game_;
+    template<typename Send>
+    void SendResponse(http::status status, std::string_view body, unsigned http_version, Send&& send) {
+        http::response<http::string_body> response(status, http_version);
+        response.set(http::field::content_type, ContentType::APP_JSON);
+        response.body() = body;
+        send(response);
+    }
 };
 
 }  // namespace http_handler

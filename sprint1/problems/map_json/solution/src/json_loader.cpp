@@ -1,90 +1,70 @@
 #include "json_loader.h"
+
 #include <fstream>
-#include <sstream>
-#include <boost/json.hpp>
 
 namespace json_loader {
 
-namespace json = boost::json;
-
 model::Game LoadGame(const std::filesystem::path& json_path) {
-    // Загрузить содержимое файла json_path
-    std::ifstream file(json_path);
-    if (!file) {
-        throw std::runtime_error("Failed to open config file");
+    // Загрузить содержимое файла json_path, например, в виде строки
+    // Распарсить строку как JSON, используя boost::json::parse
+    // Загрузить модель игры из файла
+    model::Game game;
+    auto json_config = json::parse(ReadFileToString(json_path));
+    for (const auto& parsed_map : json_config.as_object().at("maps").as_array()) {
+        json::object object_map = parsed_map.as_object();
+        auto parsed_id = object_map.at("id").as_string().c_str();
+        model::Map model_map(model::Map::Id(parsed_id), object_map.at("name").as_string().c_str());
+        for (const auto& building : object_map.at("buildings").as_array()) {
+            model_map.AddBuilding(JsonToBuilding(building.as_object()));
+        }
+        for (const auto& road : object_map.at("roads").as_array()) {
+            model_map.AddRoad(JsonToRoad(road.as_object()));
+        }
+        for (const auto& office : object_map.at("offices").as_array()) {
+            model_map.AddOffice(JsonToOffice(office.as_object()));
+        }
+        game.AddMap(model_map);
     }
-    
+    return game;
+}
+
+std::string ReadFileToString(const std::filesystem::path& filePath) {
+    std::ifstream file(filePath);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Не удалось открыть файл: " + filePath.string());
+    }
+
     std::stringstream buffer;
     buffer << file.rdbuf();
-    std::string content = buffer.str();
+
+    return buffer.str();
+}
+
+model::Building JsonToBuilding(const json::object& obj) {
+    model::Rectangle rect{ {obj.at("x").to_number<int>(), obj.at("y").to_number<int>()}
+            , {obj.at("w").to_number<int>(), obj.at("h").to_number<int>()}};
+    return model::Building(rect);
+}
+
+model::Office JsonToOffice(const json::object& obj) {
     
-    // Распарсить строку как JSON
-    json::value json_value = json::parse(content);
-    json::object root = json_value.as_object();
-    
-    model::Game game;
-    
-    // Загружаем карты
-    json::array maps = root.at("maps").as_array();
-    for (const auto& map_json : maps) {
-        json::object map_obj = map_json.as_object();
-        
-        std::string id = json::value_to<std::string>(map_obj.at("id"));
-        std::string name = json::value_to<std::string>(map_obj.at("name"));
-        
-        model::Map map(model::Map::Id(id), name);
-        
-        // Загружаем дороги
-        json::array roads = map_obj.at("roads").as_array();
-        for (const auto& road_json : roads) {
-            json::object road_obj = road_json.as_object();
-            
-            if (road_obj.contains("x1")) {
-                // Горизонтальная дорога
-                model::Coord x0 = road_obj.at("x0").as_int64();
-                model::Coord y0 = road_obj.at("y0").as_int64();
-                model::Coord x1 = road_obj.at("x1").as_int64();
-                map.AddRoad(model::Road(model::Road::HORIZONTAL, model::Point{x0, y0}, x1));
-            } else {
-                // Вертикальная дорога
-                model::Coord x0 = road_obj.at("x0").as_int64();
-                model::Coord y0 = road_obj.at("y0").as_int64();
-                model::Coord y1 = road_obj.at("y1").as_int64();
-                map.AddRoad(model::Road(model::Road::VERTICAL, model::Point{x0, y0}, y1));
-            }
-        }
-        
-        // Загружаем здания
-        json::array buildings = map_obj.at("buildings").as_array();
-        for (const auto& building_json : buildings) {
-            json::object building_obj = building_json.as_object();
-            
-            model::Coord x = building_obj.at("x").as_int64();
-            model::Coord y = building_obj.at("y").as_int64();
-            model::Coord w = building_obj.at("w").as_int64();
-            model::Coord h = building_obj.at("h").as_int64();
-            
-            map.AddBuilding(model::Building(model::Rectangle{model::Point{x, y}, model::Size{w, h}}));
-        }
-        
-        // Загружаем офисы
-        json::array offices = map_obj.at("offices").as_array();
-        for (const auto& office_json : offices) {
-            json::object office_obj = office_json.as_object();
-            
-            std::string id = json::value_to<std::string>(office_obj.at("id"));
-            model::Coord x = office_obj.at("x").as_int64();
-            model::Coord y = office_obj.at("y").as_int64();
-            model::Coord offsetX = office_obj.at("offsetX").as_int64();
-            model::Coord offsetY = office_obj.at("offsetY").as_int64();
-            
-            map.AddOffice(model::Office(model::Office::Id(id), model::Point{x, y}, model::Offset{offsetX, offsetY}));
-        }
-        
-        game.AddMap(std::move(map));
+    return model::Office(model::Office::Id(obj.at("id").as_string().c_str())
+        , { obj.at("x").to_number<int>(), obj.at("y").to_number<int>() }
+        , {obj.at("offsetX").to_number<int>(), obj.at("offsetY").to_number<int>() });
+}
+
+model::Road JsonToRoad(const json::object& obj) {
+    if (obj.contains("x1")) {
+        return model::Road(model::Road::HORIZONTAL
+            , { obj.at("x0").to_number<int>(), obj.at("y0").to_number<int>() }
+            , obj.at("x1").to_number<int>());
     }
-    
-    return game;
+    else {
+        return model::Road(model::Road::VERTICAL
+            , { obj.at("x0").to_number<int>(), obj.at("y0").to_number<int>() }
+            , obj.at("y1").to_number<int>());
+    }
 }
 
 }  // namespace json_loader
