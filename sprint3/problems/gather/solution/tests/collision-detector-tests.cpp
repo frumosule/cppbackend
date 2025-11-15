@@ -174,7 +174,7 @@ TEST_CASE("Multiple gatherers and items", "[collision_detector]") {
     REQUIRE(events.size() == 2);
     
     // Проверяем что события в хронологическом порядке
-    CHECK(events[0].time <= events[1].time);
+    REQUIRE(events[0].time <= events[1].time);
     
     // Проверяем конкретные события
     bool found_event1 = false, found_event2 = false;
@@ -188,8 +188,8 @@ TEST_CASE("Multiple gatherers and items", "[collision_detector]") {
             found_event2 = true;
         }
     }
-    CHECK(found_event1);
-    CHECK(found_event2);
+    REQUIRE(found_event1);
+    REQUIRE(found_event2);
 }
 
 // ТЕСТ 6: Собиратель не двигается - нет столкновений
@@ -254,9 +254,9 @@ TEST_CASE("Events are in chronological order", "[collision_detector]") {
     
     REQUIRE(events.size() == 2);
     // Проверяем хронологический порядок
-    CHECK(events[0].time < events[1].time);
-    CHECK(events[0].item_id == 0);  // item0 должен быть первым
-    CHECK(events[1].item_id == 1);  // item1 должен быть вторым
+    REQUIRE(events[0].time < events[1].time);
+    REQUIRE(events[0].item_id == 0);  // item0 должен быть первым
+    REQUIRE(events[1].item_id == 1);  // item1 должен быть вторым
 }
 
 // ТЕСТ 10: Один собиратель может собрать несколько предметов
@@ -278,11 +278,11 @@ TEST_CASE("One gatherer can collect multiple items", "[collision_detector]") {
     
     // Проверяем что все события для одного собирателя
     for (const auto& event : events) {
-        CHECK(event.gatherer_id == 0);
+        REQUIRE(event.gatherer_id == 0);
     }
     
     // Проверяем хронологический порядок
     for (size_t i = 1; i < events.size(); ++i) {
-        CHECK(events[i-1].time <= events[i].time);
+        REQUIRE(events[i-1].time <= events[i].time);
     }
 }
