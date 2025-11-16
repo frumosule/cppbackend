@@ -639,6 +639,8 @@ namespace http_handler
             }
             player_info["bag"] = std::move(bag_array);
 
+            player_info["score"] = player->GetScore();
+
             players_json[std::to_string(player_id)] = player_info;
         }
 
