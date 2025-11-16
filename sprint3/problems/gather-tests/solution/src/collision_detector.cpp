@@ -25,65 +25,46 @@ namespace collision_detector
         return CollectionResult(sq_distance, proj_ratio);
     }
 
-    std::vector<GatheringEvent> FindGatherEvents(const ItemGathererProvider &provider)
+    std::vector<GatheringEvent> FindGatherEvents(
+        const ItemGathererProvider &provider)
     {
-        std::vector<GatheringEvent> events;
+        std::vector<GatheringEvent> detected_events;
 
-        // Проходим по всем собирателям
-        for (size_t gatherer_id = 0; gatherer_id < provider.GatherersCount(); ++gatherer_id)
+        static auto eq_pt = [](geom::Point2D p1, geom::Point2D p2)
         {
-            auto gatherer = provider.GetGatherer(gatherer_id);
+            return p1.x == p2.x && p1.y == p2.y;
+        };
 
-            // Пропускаем неподвижных собирателей (нулевое перемещение)
-            if (gatherer.start_pos.x == gatherer.end_pos.x &&
-                gatherer.start_pos.y == gatherer.end_pos.y)
+        for (size_t g = 0; g < provider.GatherersCount(); ++g)
+        {
+            Gatherer gatherer = provider.GetGatherer(g);
+            if (eq_pt(gatherer.start_pos, gatherer.end_pos))
             {
                 continue;
             }
-
-            // Проходим по всем предметам
-            for (size_t item_id = 0; item_id < provider.ItemsCount(); ++item_id)
+            for (size_t i = 0; i < provider.ItemsCount(); ++i)
             {
-                auto item = provider.GetItem(item_id);
+                Item item = provider.GetItem(i);
+                auto collect_result = TryCollectPoint(gatherer.start_pos, gatherer.end_pos, item.position);
 
-                // Используем TryCollectPoint для проверки столкновения
-                auto result = TryCollectPoint(gatherer.start_pos, gatherer.end_pos, item.position);
-
-                // Вычисляем суммарный радиус для столкновения
-                // width - это диаметр, поэтому делим на 2 для радиуса
-                double gatherer_radius = gatherer.width / 2.0;
-                double item_radius = item.width / 2.0;
-                double total_radius = gatherer_radius + item_radius;
-
-                // Проверяем условия сбора:
-                // 1. Проекция находится на отрезке (0 <= proj_ratio <= 1)
-                // 2. Расстояние меньше или равно суммарному радиусу
-                if (result.IsCollected(total_radius))
+                if (collect_result.IsCollected(gatherer.width + item.width))
                 {
-                    events.emplace_back(item_id, gatherer_id, result.sq_distance, result.proj_ratio);
+                    GatheringEvent evt{.item_id = i,
+                                       .gatherer_id = g,
+                                       .sq_distance = collect_result.sq_distance,
+                                       .time = collect_result.proj_ratio};
+                    detected_events.push_back(evt);
                 }
             }
         }
 
-        // Сортируем события по времени (proj_ratio)
-        std::sort(events.begin(), events.end(),
-                  [](const GatheringEvent &a, const GatheringEvent &b)
+        std::sort(detected_events.begin(), detected_events.end(),
+                  [](const GatheringEvent &e_l, const GatheringEvent &e_r)
                   {
-                      // Сначала сортируем по времени
-                      if (a.time != b.time)
-                      {
-                          return a.time < b.time;
-                      }
-                      // Если время одинаковое, сортируем по gatherer_id для стабильности
-                      if (a.gatherer_id != b.gatherer_id)
-                      {
-                          return a.gatherer_id < b.gatherer_id;
-                      }
-                      // Если и gatherer_id одинаковые, сортируем по item_id
-                      return a.item_id < b.item_id;
+                      return e_l.time < e_r.time;
                   });
 
-        return events;
+        return detected_events;
     }
 
 } // namespace collision_detector
