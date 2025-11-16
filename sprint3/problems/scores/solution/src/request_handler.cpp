@@ -646,6 +646,7 @@ namespace http_handler
 
             players_json[std::to_string(player_id)] = player_info;
         }
+        //ээээ
 
         // НОВОЕ: Получаем потерянные объекты через GameSessionManager
         json::object lost_objects_json;
