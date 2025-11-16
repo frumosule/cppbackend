@@ -59,10 +59,28 @@ namespace http_handler
             return GetMapsList(req);
         }
 
-        if (req.method() == http::verb::get && target.starts_with("/api/v1/maps/"))
+        if (target.starts_with("/api/v1/maps/"))
         {
             std::string map_id = target.substr(13);
-            return GetMapById(map_id, req);
+
+            // Для GET и HEAD - возвращаем карту
+            if (req.method() == http::verb::get || req.method() == http::verb::head)
+            {
+                return GetMapById(map_id, req);
+            }
+            // Для всех других методов - возвращаем 405
+            else
+            {
+                StringResponse response(http::status::method_not_allowed, req.version());
+                response.set(http::field::content_type, "application/json");
+                response.set(http::field::allow, "GET, HEAD");
+                response.set(http::field::cache_control, "no-cache");
+                response.body() = json::serialize(json::object{
+                    {"code", "invalidMethod"},
+                    {"message", "Invalid method"}});
+                response.prepare_payload();
+                return response;
+            }
         }
 
         // Новые endpoints для игры
