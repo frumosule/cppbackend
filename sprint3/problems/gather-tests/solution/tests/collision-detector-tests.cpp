@@ -278,4 +278,5 @@ TEST_CASE("One gatherer can collect multiple items", "[collision_detector]") {
     for (size_t i = 1; i < events.size(); ++i) {
         REQUIRE(events[i-1].time <= events[i].time);
     }
+    ///ААААА
 }
