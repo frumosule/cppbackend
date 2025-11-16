@@ -600,8 +600,8 @@ namespace http_handler
 
             // Позиция
             json::array pos_array;
-            pos_array.push_back(player->GetPosX());
-            pos_array.push_back(player->GetPosY());
+            pos_array.push_back(static_cast<double>(player->GetPosX())); // ← Исправлено
+            pos_array.push_back(static_cast<double>(player->GetPosY()));
             player_info["pos"] = pos_array;
 
             // Скорость
@@ -639,8 +639,8 @@ namespace http_handler
                 obj_info["type"] = lost_obj.type;
 
                 json::array pos_array;
-                pos_array.push_back(lost_obj.position.x);
-                pos_array.push_back(lost_obj.position.y);
+                pos_array.push_back(static_cast<double>(lost_obj.position.x)); // ← Исправлено
+                pos_array.push_back(static_cast<double>(lost_obj.position.y));
                 obj_info["pos"] = pos_array;
 
                 lost_objects_json[std::to_string(obj_id)] = obj_info;
@@ -805,16 +805,39 @@ namespace http_handler
         return MakeJsonResponse(http::status::ok, maps_array, req);
     }
 
+    // В методе GetMapById замените:
     StringResponse RequestHandler::GetMapById(const std::string &map_id, const StringRequest &req)
     {
+        // Проверяем метод - только GET и HEAD разрешены
+        if (req.method() != http::verb::get && req.method() != http::verb::head)
+        {
+            StringResponse response(http::status::method_not_allowed, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::allow, "GET, HEAD");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(json::object{
+                {"code", "invalidMethod"},
+                {"message", "Invalid method"}});
+            response.prepare_payload();
+            return response;
+        }
+
         auto map = game_.FindMap(model::Map::Id(map_id));
         if (!map)
         {
-            return MakeJsonResponse(http::status::not_found,
+            return MakeJsonResponse(http::status::not_found, // ← Исправлено с bad_request на not_found
                                     json::object{{"code", "mapNotFound"}, {"message", "Map not found"}}, req);
         }
 
-        return MakeJsonResponse(http::status::ok, SerializeMap(*map), req);
+        auto response = MakeJsonResponse(http::status::ok, SerializeMap(*map), req);
+
+        // Для HEAD запроса очищаем тело
+        if (req.method() == http::verb::head)
+        {
+            response.body().clear();
+        }
+
+        return response;
     }
 
     boost::json::value RequestHandler::SerializeMap(const model::Map &map)
