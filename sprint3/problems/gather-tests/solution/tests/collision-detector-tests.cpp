@@ -4,6 +4,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <vector>
 #include <algorithm>
+#include <sstream>
 
 namespace collision_detector {
 namespace {
@@ -67,12 +68,13 @@ GatheringEventMatcher EqualsEvent(size_t gatherer_id, size_t item_id,
 }
 
 }  // namespace
+}  // namespace collision_detector
 
-// Для красивого вывода ошибок в Catch2
+// StringMaker specialization must be in the Catch namespace
 namespace Catch {
 template<>
-struct StringMaker<GatheringEvent> {
-    static std::string convert(GatheringEvent const& value) {
+struct StringMaker<collision_detector::GatheringEvent> {
+    static std::string convert(collision_detector::GatheringEvent const& value) {
         std::ostringstream tmp;
         tmp << "(" << value.gatherer_id << "," << value.item_id 
             << "," << value.sq_distance << "," << value.time << ")";
@@ -80,8 +82,6 @@ struct StringMaker<GatheringEvent> {
     }
 };
 }  // namespace Catch
-
-}  // namespace collision_detector
 
 using namespace collision_detector;
 using namespace geom;
@@ -278,5 +278,4 @@ TEST_CASE("One gatherer can collect multiple items", "[collision_detector]") {
     for (size_t i = 1; i < events.size(); ++i) {
         REQUIRE(events[i-1].time <= events[i].time);
     }
-    ///ААААА
 }

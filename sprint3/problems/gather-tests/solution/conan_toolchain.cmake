@@ -132,15 +132,18 @@ else()
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Definition of CMAKE_MODULE_PATH
+list(PREPEND CMAKE_MODULE_PATH "C:/Users/User/.conan2/p/b/catch1071e9853c06a/p/lib/cmake/Catch2")
 # the generators folder (where conan generates files, like this toolchain)
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 # Definition of CMAKE_PREFIX_PATH, CMAKE_XXXXX_PATH
+# The explicitly defined "builddirs" of "host" context dependencies must be in PREFIX_PATH
+list(PREPEND CMAKE_PREFIX_PATH "C:/Users/User/.conan2/p/b/catch1071e9853c06a/p/lib/cmake/Catch2")
 # The Conan local "generators" folder, where this toolchain is saved.
 list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_LIST_DIR} )
-list(PREPEND CMAKE_LIBRARY_PATH "C:/Users/User/.conan2/p/b/boosta60c236234509/p/lib" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/lib" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/lib")
-list(PREPEND CMAKE_INCLUDE_PATH "C:/Users/User/.conan2/p/b/boosta60c236234509/p/include" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/include" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/include")
-set(CONAN_RUNTIME_LIB_DIRS "C:/Users/User/.conan2/p/b/boosta60c236234509/p/bin" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/bin" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/bin" )
+list(PREPEND CMAKE_LIBRARY_PATH "C:/Users/User/.conan2/p/b/boosta60c236234509/p/lib" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/lib" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/lib" "C:/Users/User/.conan2/p/b/catch1071e9853c06a/p/lib")
+list(PREPEND CMAKE_INCLUDE_PATH "C:/Users/User/.conan2/p/b/boosta60c236234509/p/include" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/include" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/include" "C:/Users/User/.conan2/p/b/catch1071e9853c06a/p/include")
+set(CONAN_RUNTIME_LIB_DIRS "C:/Users/User/.conan2/p/b/boosta60c236234509/p/bin" "C:/Users/User/.conan2/p/b/zlib147dd1290f6d2/p/bin" "C:/Users/User/.conan2/p/b/bzip245e3cfb5a7436/p/bin" "C:/Users/User/.conan2/p/b/catch1071e9853c06a/p/bin" )
 
 endif()
 
