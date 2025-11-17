@@ -18,13 +18,11 @@ namespace model
             return nullptr;
         }
 
-        // Создаем GameSession на основе SessionData
         auto game_session = std::make_shared<GameSession>(map_id);
         for (const auto &[player_id, player] : session_data->players)
         {
             game_session->AddPlayer(player);
         }
-        // ДОБАВИТЬ: передача lost_objects в GameSession если нужно
         return game_session;
     }
 
@@ -85,7 +83,6 @@ namespace model
             return false;
         }
 
-        // Находим карту для получения скорости
         auto map = game_.FindMap(player->GetMapId());
         if (!map)
         {
@@ -94,7 +91,6 @@ namespace model
 
         double dog_speed = map->HasDogSpeed() ? map->GetDogSpeed() : game_.GetDefaultDogSpeed();
 
-        // Устанавливаем скорость как в образце
         if (move == "L")
         {
             player->SetSpeed(-dog_speed, 0.0);
@@ -118,7 +114,6 @@ namespace model
         else if (move == "")
         {
             player->SetSpeed(0.0, 0.0);
-            // Направление не сбрасываем, как в образце
         }
 
         return true;
@@ -157,10 +152,8 @@ namespace model
             throw std::runtime_error("No roads on the map");
         }
 
-        // Если включен случайный спавн
         if (randomize_spawn_)
         {
-            // Случайный выбор дороги
             std::uniform_int_distribution<size_t> road_dist(0, roads.size() - 1);
             const auto &road = roads[road_dist(generator_)];
 
@@ -169,7 +162,6 @@ namespace model
 
             if (road.IsHorizontal())
             {
-                // Случайная позиция на горизонтальной дороге
                 int min_x = std::min(start.x, end.x);
                 int max_x = std::max(start.x, end.x);
                 std::uniform_real_distribution<double> pos_dist(min_x + 0.4, max_x - 0.4);
@@ -178,7 +170,6 @@ namespace model
             }
             else
             {
-                // Случайная позиция на вертикальной дороге
                 int min_y = std::min(start.y, end.y);
                 int max_y = std::max(start.y, end.y);
                 std::uniform_real_distribution<double> pos_dist(min_y + 0.4, max_y - 0.4);
@@ -188,14 +179,12 @@ namespace model
         }
         else
         {
-            // Стандартная логика - начало первой дороги
             const auto &first_road = roads[0];
             const auto &start = first_road.GetStart();
             return {static_cast<double>(start.x), static_cast<double>(start.y)};
         }
     }
 
-    // В методе GenerateLootForSession
     void GameSessionManager::GenerateLootForSession(SessionData &session, const Map::Id &map_id, int time_delta_ms)
     {
         auto map = game_.FindMap(map_id);
@@ -204,7 +193,6 @@ namespace model
             return;
         }
 
-        // НОВОЕ: Получаем стоимости предметов для этой карты
         auto loot_values = GetLootValuesForMap(map_id);
 
         unsigned current_loot_count = session.lost_objects.size();
@@ -218,18 +206,16 @@ namespace model
         for (unsigned i = 0; i < new_loot_count; ++i)
         {
             LostObject new_obj(
-                session.next_lost_object_id++, // id
-                0,                             // type (будет установлен ниже)
-                Point{0, 0},                   // position (будет установлен ниже)
-                0                              // value (будет установлен ниже)
+                session.next_lost_object_id++, 
+                0,                             
+                Point{0, 0},                   
+                0                              
             );
 
-            // Случайный тип предмета (от 0 до N-1)
             std::uniform_int_distribution<int> type_dist(0, map->GetLootTypesCount() - 1);
             int item_type = type_dist(generator_);
             new_obj.type = item_type;
 
-            // НОВОЕ: Устанавливаем стоимость предмета из конфигурации
             auto value_it = loot_values.find(item_type);
             if (value_it != loot_values.end())
             {
@@ -237,10 +223,9 @@ namespace model
             }
             else
             {
-                new_obj.value = 0; // значение по умолчанию
+                new_obj.value = 0; 
             }
 
-            // Случайная позиция на карте
             Point pos = map->GetRandomPoint(generator_);
             new_obj.position = pos;
 
@@ -265,30 +250,29 @@ namespace model
         {
             return it->second;
         }
-        return {}; // возвращаем пустой map если нет данных
+        return {};
     }
 
     const std::unordered_map<LostObject::Id, LostObject> &GameSessionManager::GetLostObjects(const Map::Id &map_id) const
     {
         static std::unordered_map<LostObject::Id, LostObject> empty;
 
-        std::lock_guard<std::mutex> lock(mutex_); // ИСПРАВЛЕНО: mutex_ теперь mutable
+        std::lock_guard<std::mutex> lock(mutex_); 
         auto it = sessions_.find(map_id);
         if (it != sessions_.end())
         {
-            return it->second->lost_objects; // ИСПРАВЛЕНО: it->second теперь shared_ptr<SessionData>
+            return it->second->lost_objects; 
         }
         return empty;
     }
 
     void GameSessionManager::InitializeLootGenerator(double base_interval, double probability)
     {
-        // ИСПРАВЛЕНО: преобразуем double секунды в миллисекунды
         auto base_interval_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::duration<double>(base_interval));
 
         loot_generator_ = std::make_unique<loot_gen::LootGenerator>(
-            base_interval_ms, // ИСПРАВЛЕНО: передаем миллисекунды
+            base_interval_ms, 
             probability,
             [this]()
             {
@@ -307,10 +291,8 @@ namespace model
             if (!map)
                 continue;
 
-            // ИСПРАВЛЕНО: session теперь shared_ptr<SessionData>
             GenerateLootForSession(*session, map_id, time_delta_ms);
 
-            // Обработка коллизий
             double time_delta_seconds = static_cast<double>(time_delta_ms) / 1000.0;
             auto collision_result = CollisionHandler::ProcessCollisions(
                 session->players,
@@ -318,7 +300,6 @@ namespace model
                 map->GetOffices(),
                 time_delta_seconds);
 
-            // Обрабатываем сбор предметов
             for (const auto &[player_id, collected_items] : collision_result.collected_items)
             {
                 auto player = session->players[player_id];
@@ -326,23 +307,20 @@ namespace model
                 {
                     auto it = session->lost_objects.find(item_id);
                     if (it != session->lost_objects.end() && player->AddToBag(item_id, it->second.type, it->second.value))
-                    { // НОВОЕ: передаем value
-                        // Удаляем предмет из мира
+                    { 
                         session->lost_objects.erase(it);
                         std::cout << "Player " << player_id << " collected item " << item_id
-                                  << " worth " << it->second.value << " points" << std::endl; // НОВОЕ: выводим стоимость
+                                  << " worth " << it->second.value << " points" << std::endl; 
                     }
                 }
             }
 
-            // Обрабатываем возврат на базу
             for (const auto &[player_id, returned] : collision_result.returned_to_office)
             {
                 if (returned)
                 {
                     auto player = session->players[player_id];
 
-                    // НОВОЕ: Начисляем очки за все предметы в рюкзаке
                     int total_score = 0;
                     for (const auto &bag_item : player->GetBag())
                     {
@@ -360,7 +338,6 @@ namespace model
                 }
             }
 
-            // Строим граф дорог для этой карты
             auto roads_graph = BuildRoadsGraph(map);
 
             for (auto &[player_id, player] : session->players)
@@ -375,7 +352,6 @@ namespace model
                 double speed_x = player->GetSpeedX();
                 double speed_y = player->GetSpeedY();
 
-                // Вычисляем движение как в образце
                 auto [should_stop, new_pos] = CalculateMove(current_x, current_y, speed_x, speed_y,
                                                             time_delta_ms, roads_graph);
 
@@ -462,7 +438,6 @@ namespace model
         std::cout << "=== Roads Graph Built ===" << std::endl;
         std::cout << "Total points in graph: " << roads_graph.size() << std::endl;
 
-        // Проверим конкретно точку (1, 1)
         auto check_point = roads_graph.find({1, 1});
         if (check_point != roads_graph.end())
         {
@@ -575,22 +550,18 @@ namespace model
 
         std::vector<Point> points_to_check = {rounded};
 
-        // Добавляем соседей только если текущая позиция близка к границе клетки
         const double EPSILON = 0.1;
         if (std::abs(x - std::round(x)) < EPSILON)
         {
-            // Близко к границе по X - проверяем соседей по X
             points_to_check.push_back({rounded.x - 1, rounded.y});
             points_to_check.push_back({rounded.x + 1, rounded.y});
         }
         if (std::abs(y - std::round(y)) < EPSILON)
         {
-            // Близко к границе по Y - проверяем соседей по Y
             points_to_check.push_back({rounded.x, rounded.y - 1});
             points_to_check.push_back({rounded.x, rounded.y + 1});
         }
 
-        // Проверяем все точки из списка
         for (const auto &point : points_to_check)
         {
             auto it = roads_graph.find(point);
@@ -598,7 +569,6 @@ namespace model
             {
                 std::cout << "Found " << it->second.size() << " roads at point (" << point.x << "," << point.y << ")" << std::endl;
 
-                // 1. Сначала проверяем, можно ли двигаться до конечной точки
                 for (const auto &road : it->second)
                 {
                     bool in_bounds = InBounds(road, end_x, end_y);
@@ -615,12 +585,10 @@ namespace model
 
                 std::cout << "NO ROAD ALLOWS MOVEMENT TO TARGET - CHECKING BOUNDARIES" << std::endl;
 
-                // 2. Если нельзя двигаться до конечной точки - находим границу
                 for (const auto &road : it->second)
                 {
                     if (road->IsHorizontal() && speed_y == 0.0)
                     {
-                        // Горизонтальная дорога, движение по X
                         if (speed_x > 0)
                         {
                             double max_x = GetMaxPossible(road, "EAST");
@@ -637,7 +605,6 @@ namespace model
 
                     if (road->IsVertical() && speed_x == 0.0)
                     {
-                        // Вертикальная дорога, движение по Y
                         if (speed_y > 0)
                         {
                             double max_y = GetMaxPossible(road, "SOUTH");
@@ -659,7 +626,6 @@ namespace model
             }
         }
 
-        // 3. Fallback - если после проверки ВСЕХ точек ничего не нашли
         std::cout << "NO ROADS FOUND IN ANY CHECKED POINTS - USING FALLBACK" << std::endl;
 
         if (speed_x == 0.0)
@@ -682,7 +648,7 @@ namespace model
 
     std::shared_ptr<GameSessionManager::SessionData> GameSessionManager::CreateSessionUnsafe(const Map::Id &map_id)
     {
-        auto session = std::make_shared<SessionData>(); // ИСПРАВЛЕНО: создаем SessionData, а не GameSession
+        auto session = std::make_shared<SessionData>(); 
         sessions_[map_id] = session;
         return session;
     }
@@ -698,10 +664,9 @@ namespace model
         auto map = game_.FindMap(map_id);
         if (!map)
         {
-            return game_.GetDefaultBagCapacity(); // Используем значение из Game
+            return game_.GetDefaultBagCapacity(); 
         }
 
-        // Если у карты есть своя вместимость - используем её, иначе значение по умолчанию
         if (map->HasBagCapacity())
         {
             return map->GetBagCapacity();

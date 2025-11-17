@@ -11,13 +11,12 @@ namespace model {
 
 class CollisionHandler {
 public:
-    // Провайдер для collision_detector
     class GameProvider : public collision_detector::ItemGathererProvider {
     public:
         GameProvider(const std::unordered_map<Player::Id, std::shared_ptr<Player>>& players,
                     const std::unordered_map<LostObject::Id, LostObject>& lost_objects,
                     const std::vector<Office>& offices,
-                    double time_delta);  // ДОБАВЛЯЕМ time_delta параметр
+                    double time_delta);  
         
         size_t ItemsCount() const override;
         collision_detector::Item GetItem(size_t idx) const override;
@@ -28,7 +27,7 @@ public:
         const std::unordered_map<Player::Id, std::shared_ptr<Player>>& players_;
         const std::unordered_map<LostObject::Id, LostObject>& lost_objects_;
         const std::vector<Office>& offices_;
-        double time_delta_;  // ДОБАВЛЯЕМ поле для хранения времени
+        double time_delta_;  
         std::vector<collision_detector::Item> items_;
         std::vector<collision_detector::Gatherer> gatherers_;
     };

@@ -8,7 +8,6 @@ namespace json_loader
 
     namespace json = boost::json;
 
-    // НОВОЕ: Функция для парсинга конфигурации генератора лута
     LootGeneratorConfig ParseLootGeneratorConfig(const json::object &config_obj)
     {
         LootGeneratorConfig config;
@@ -17,7 +16,6 @@ namespace json_loader
         return config;
     }
 
-    // НОВОЕ: Функция для парсинга lootTypes
     size_t ParseLootTypes(const json::object &map_obj)
     {
         if (!map_obj.contains("lootTypes"))
@@ -53,7 +51,6 @@ namespace json_loader
         return loot_values;
     }
 
-    // НОВОЕ: Функция для получения конфигурации генератора лута
     std::optional<LootGeneratorConfig> GetLootGeneratorConfig(const json::object &root)
     {
         if (root.contains("lootGeneratorConfig"))
@@ -63,7 +60,6 @@ namespace json_loader
         return std::nullopt;
     }
 
-    // НОВОЕ: Функция для получения lootTypes для конкретной карты
     json::array GetLootTypesForMap(const json::object &map_obj)
     {
         if (map_obj.contains("lootTypes"))
@@ -92,7 +88,6 @@ namespace json_loader
             std::unordered_map<model::Map::Id, json::array, model::Game::MapIdHasher> map_loot_types;
             std::unordered_map<model::Map::Id, std::unordered_map<int, int>, model::Game::MapIdHasher> map_loot_values;
 
-            // Загружаем конфигурацию генератора лута
             loot_config = GetLootGeneratorConfig(root);
 
             if (root.contains("defaultDogSpeed"))
@@ -107,21 +102,18 @@ namespace json_loader
                 game.SetDefaultBagCapacity(default_capacity);
             }
 
-            // Загружаем карты
             auto maps = root.at("maps").as_array();
             for (const auto &map_json : maps)
             {
                 auto map_obj = map_json.as_object();
                 auto map = detail::ParseMap(map_obj);
 
-                // НОВОЕ: Устанавливаем количество типов лута
                 size_t loot_types_count = ParseLootTypes(map_obj);
                 map.SetLootTypesCount(loot_types_count);
 
                 auto loot_values = ParseLootValues(map_obj);
                 map_loot_values[map.GetId()] = loot_values;
 
-                // НОВОЕ: Сохраняем lootTypes для API
                 auto loot_types = GetLootTypesForMap(map_obj);
                 map_loot_types[map.GetId()] = loot_types;
 
@@ -183,21 +175,18 @@ namespace json_loader
                 map.SetBagCapacity(bag_capacity);
             }
 
-            // Загружаем дороги
             auto roads = map_obj.at("roads").as_array();
             for (const auto &road_json : roads)
             {
                 map.AddRoad(ParseRoad(road_json.as_object()));
             }
 
-            // Загружаем здания
             auto buildings = map_obj.at("buildings").as_array();
             for (const auto &building_json : buildings)
             {
                 map.AddBuilding(ParseBuilding(building_json.as_object()));
             }
 
-            // Загружаем офисы
             auto offices = map_obj.at("offices").as_array();
             for (const auto &office_json : offices)
             {
@@ -214,13 +203,11 @@ namespace json_loader
 
             if (road_obj.contains("x1"))
             {
-                // Горизонтальная дорога
                 model::Coord x1 = road_obj.at("x1").as_int64();
                 return model::Road(model::Road::HORIZONTAL, model::Point{x0, y0}, x1);
             }
             else
             {
-                // Вертикальная дорога
                 model::Coord y1 = road_obj.at("y1").as_int64();
                 return model::Road(model::Road::VERTICAL, model::Point{x0, y0}, y1);
             }

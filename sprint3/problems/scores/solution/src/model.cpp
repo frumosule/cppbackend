@@ -16,7 +16,6 @@ void Map::AddOffice(Office office) {
     try {
         warehouse_id_to_index_.emplace(o.GetId(), index);
     } catch (...) {
-        // Удаляем офис из вектора, если не удалось вставить в unordered_map
         offices_.pop_back();
         throw;
     }
@@ -27,7 +26,6 @@ Point Map::GetRandomPoint(std::mt19937& generator) const {
         return {0, 0};
     }
     
-    // Выбираем случайную дорогу
     std::uniform_int_distribution<size_t> road_dist(0, roads_.size() - 1);
     const Road& road = roads_[road_dist(generator)];
     
@@ -35,14 +33,12 @@ Point Map::GetRandomPoint(std::mt19937& generator) const {
     const auto& end = road.GetEnd();
     
     if (road.IsHorizontal()) {
-        // Горизонтальная дорога
         int min_x = std::min(start.x, end.x);
         int max_x = std::max(start.x, end.x);
         std::uniform_real_distribution<double> x_dist(min_x + 0.4, max_x - 0.4);
         double x = x_dist(generator);
         return {static_cast<Coord>(x), start.y};
     } else {
-        // Вертикальная дорога
         int min_y = std::min(start.y, end.y);
         int max_y = std::max(start.y, end.y);
         std::uniform_real_distribution<double> y_dist(min_y + 0.4, max_y - 0.4);

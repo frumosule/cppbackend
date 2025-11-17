@@ -41,9 +41,7 @@ protected:
             if (stream_.socket().is_open()) {
                 return stream_.socket().remote_endpoint().address().to_string();
             }
-        } catch (const std::exception&) {
-            // Игнорируем ошибки получения IP
-        }
+        } catch (const std::exception&) {}
         return "unknown";
     }
 

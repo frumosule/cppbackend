@@ -17,17 +17,15 @@ namespace model
         EAST = 'R'
     };
 
-    // Структура для предмета в рюкзаке
     struct BagItem
     {
         LostObject::Id id;
         int type;
-        int value; // НОВОЕ: стоимость предмета
+        int value; 
 
         BagItem(LostObject::Id id, int type, int value = 0)
             : id(id), type(type), value(value) {}
 
-        // Для удобства сравнения
         bool operator==(const BagItem &other) const
         {
             return id == other.id && type == other.type;
@@ -40,12 +38,12 @@ namespace model
         using Id = size_t;
 
         Player(Id id, std::string name, std::string auth_token, Map::Id map_id, double start_x, double start_y, size_t bag_capacity = 3)
-            : id_(id), name_(std::move(name)), auth_token_(std::move(auth_token)), // ИСПРАВЛЕНО: убрал лишнее std::string
+            : id_(id), name_(std::move(name)), auth_token_(std::move(auth_token)), 
               map_id_(std::move(map_id)), pos_x_(start_x), pos_y_(start_y),
               speed_x_(0.0), speed_y_(0.0), direction_(Direction::NORTH),
               bag_capacity_(bag_capacity), score_(0)
         {
-        } // НОВОЕ: инициализируем score
+        } 
 
         Id GetId() const noexcept { return id_; }
         const std::string &GetName() const noexcept { return name_; }
@@ -76,7 +74,6 @@ namespace model
             return static_cast<char>(direction_);
         }
 
-        // Функции для работы с рюкзаком
         const std::vector<BagItem> &GetBag() const noexcept { return bag_; }
         size_t GetBagCapacity() const noexcept { return bag_capacity_; }
         size_t GetBagSize() const noexcept { return bag_.size(); }
@@ -84,22 +81,20 @@ namespace model
 
         void SetBagCapacity(size_t capacity) { bag_capacity_ = capacity; }
 
-        // ИСПРАВЛЕНО: добавил параметр value
         bool AddToBag(LostObject::Id id, int type, int value = 0)
         {
             if (IsBagFull())
             {
                 return false;
             }
-            // Проверяем, нет ли уже такого предмета в рюкзаке
             for (const auto &item : bag_)
             {
                 if (item.id == id)
                 {
-                    return false; // Предмет уже в рюкзаке
+                    return false; 
                 }
             }
-            bag_.emplace_back(id, type, value); // ИСПРАВЛЕНО: передаем value
+            bag_.emplace_back(id, type, value); 
             return true;
         }
 
@@ -120,7 +115,6 @@ namespace model
             return false;
         }
 
-        // Удаление конкретного предмета из рюкзака (опционально)
         bool RemoveFromBag(LostObject::Id id)
         {
             for (auto it = bag_.begin(); it != bag_.end(); ++it)
@@ -134,7 +128,6 @@ namespace model
             return false;
         }
 
-        // НОВОЕ: Методы для работы с очками
         int GetScore() const noexcept { return score_; }
         void AddScore(int points) { score_ += points; }
         void SetScore(int score) { score_ = score; }
@@ -150,10 +143,9 @@ namespace model
         double speed_y_;
         Direction direction_;
 
-        // Рюкзак
         std::vector<BagItem> bag_;
         size_t bag_capacity_;
-        int score_ = 0; // НОВОЕ: счет игрока
+        int score_ = 0; 
     };
 
     class GameSession

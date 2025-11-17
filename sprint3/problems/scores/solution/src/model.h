@@ -146,11 +146,10 @@ namespace model
     {
         using Id = size_t;
         Id id;
-        int type; // от 0 до K-1, где K - количество типов трофеев на карте
+        int type; 
         Point position;
-        int value = 0; // НОВОЕ: стоимость предмета
+        int value = 0; 
 
-        // ИСПРАВЛЕНО: Добавляем конструктор
         LostObject() = default;
         LostObject(Id id, int type, Point position, int value = 0)
             : id(id), type(type), position(position), value(value) {}
@@ -217,7 +216,6 @@ namespace model
         size_t GetBagCapacity() const noexcept { return bag_capacity_.value_or(0); }
         void SetBagCapacity(size_t capacity) { bag_capacity_ = capacity; }
 
-        // НОВОЕ: получение случайной точки на дорогах карты
         Point GetRandomPoint(std::mt19937 &generator) const;
 
     private:
@@ -233,7 +231,7 @@ namespace model
 
         std::optional<double> dog_speed_;
         size_t loot_types_count_ = 0;
-        std::optional<size_t> bag_capacity_; // НОВОЕ
+        std::optional<size_t> bag_capacity_; 
     };
 
     class Game

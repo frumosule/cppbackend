@@ -8,13 +8,11 @@
 
 namespace json_loader {
 
-// НОВОЕ: Структура для конфигурации генератора лута
 struct LootGeneratorConfig {
     double period;
     double probability;
 };
 
-// НОВОЕ: Структура для возврата всех данных
 struct GameLoadResult {
     model::Game game;
     std::optional<LootGeneratorConfig> loot_config;
@@ -22,10 +20,8 @@ struct GameLoadResult {
     std::unordered_map<model::Map::Id, std::unordered_map<int, int>, model::Game::MapIdHasher> map_loot_values; // НОВОЕ
 };
 
-// Оригинальная функция для обратной совместимости
 model::Game LoadGame(const std::filesystem::path& json_path);
 
-// НОВОЕ: Расширенная функция загрузки
 GameLoadResult LoadGameWithLootConfig(const std::filesystem::path& json_path);
 
 class JsonLoaderException : public std::runtime_error {

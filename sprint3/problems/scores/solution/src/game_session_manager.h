@@ -25,7 +25,6 @@ public:
     void SetRandomSpawn(bool randomize) { randomize_spawn_ = randomize; }
     bool IsRandomSpawn() const { return randomize_spawn_; }
     
-    // НОВОЕ: Инициализация генератора лута
     void InitializeLootGenerator(double base_interval, double probability);
     const std::unordered_map<LostObject::Id, LostObject>& GetLostObjects(const Map::Id& map_id) const;
     void SetLootValuesForMap(const Map::Id& map_id, std::unordered_map<int, int> loot_values);
@@ -34,48 +33,39 @@ public:
 private:
     Game& game_;
 
-    // ИСПРАВЛЕНО: Структура данных сессии с лутом
     struct SessionData {
         std::unordered_map<Player::Id, std::shared_ptr<Player>> players;
         std::unordered_map<LostObject::Id, LostObject> lost_objects;
         LostObject::Id next_lost_object_id = 0;
-        
-        // Конструктор для SessionData
+
         SessionData() = default;
     };
 
-    // ИСПРАВЛЕНО: Используем SessionData вместо GameSession
     std::unordered_map<Map::Id, std::shared_ptr<SessionData>> sessions_;
     std::unordered_map<std::string, std::shared_ptr<Player>> players_by_token_;
     std::unordered_map<Player::Id, std::shared_ptr<Player>> players_by_id_;
-    mutable std::mutex mutex_;  // ИСПРАВЛЕНО: mutable для const методов
+    mutable std::mutex mutex_;  
     Player::Id next_player_id_ = 0;
-    std::mt19937 generator_{std::random_device{}()};  // ИСПРАВЛЕНО: mt19937 вместо mt19937_64
+    std::mt19937 generator_{std::random_device{}()};  
     bool randomize_spawn_ = false;
-    
-    // Генерация токенов
+
     std::random_device random_device_;  
     std::mt19937_64 generator1_{random_device_()};
     std::mt19937_64 generator2_{random_device_()};
-    
-    // НОВОЕ: Генератор лута
+
     std::unique_ptr<loot_gen::LootGenerator> loot_generator_;
     std::unordered_map<Map::Id, std::unordered_map<int, int>, Game::MapIdHasher> map_loot_values_;
     
     std::string GenerateAuthToken();
     std::pair<double, double> GetRandomPositionOnRoad(const Map::Id& map_id);
-    
-    // ИСПРАВЛЕНО: Методы для работы с SessionData
+
     std::shared_ptr<SessionData> FindSessionUnsafe(const Map::Id& map_id);
     std::shared_ptr<SessionData> CreateSessionUnsafe(const Map::Id& map_id);
     std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string& auth_token);
-    
-    // НОВОЕ: Методы для работы с лутом
+
     void GenerateLootForSession(SessionData& session, const Map::Id& map_id, int time_delta_ms);
     size_t GetBagCapacityForMap(const Map::Id &map_id) const;
 
-    
-    // Логика движения как в образце
     struct PointHash {
         size_t operator()(const Point& p) const {
             return std::hash<int>{}(p.x) ^ (std::hash<int>{}(p.y) << 1);
