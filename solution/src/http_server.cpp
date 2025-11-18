@@ -37,7 +37,7 @@ void SessionBase::OnRead(beast::error_code ec, [[maybe_unused]] std::size_t byte
     }
     if (ec) {
         // Логируем ошибку чтения
-        ServerLogger::log_error(ec, "read");
+        ServerLogger::LogError(ec, "read");
         return ReportError(ec, "read"sv);
     }
     HandleRequest(std::move(request_));
@@ -46,7 +46,7 @@ void SessionBase::OnRead(beast::error_code ec, [[maybe_unused]] std::size_t byte
 void SessionBase::OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written) {
     if (ec) {
         // Логируем ошибку записи
-        ServerLogger::log_error(ec, "write");
+        ServerLogger::LogError(ec, "write");
         return ReportError(ec, "write"sv);
     }
 
@@ -65,7 +65,7 @@ void SessionBase::Close() {
     
     // Логируем ошибку закрытия сокета, если она есть
     if (ec && ec != beast::errc::not_connected) {
-        ServerLogger::log_error(ec, "close");
+        ServerLogger::LogError(ec, "close");
     }
 }
 

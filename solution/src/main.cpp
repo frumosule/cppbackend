@@ -13,6 +13,7 @@
 #include "logging/logger.h"
 #include "logging/logging_handler.h"
 #include "game_session_manager.h"
+#include "ticker.h" 
 
 using namespace std::literals;
 namespace net = boost::asio;
@@ -68,62 +69,6 @@ struct Args {
 
     return args;
 }
-
-class Ticker : public std::enable_shared_from_this<Ticker> {
-public:
-    using Strand = net::strand<net::io_context::executor_type>;
-    using Handler = std::function<void(std::chrono::milliseconds delta)>;
-
-    Ticker(Strand strand, std::chrono::milliseconds period, Handler handler)
-        : strand_{strand}
-        , period_{period}
-        , handler_{std::move(handler)} {
-    }
-
-    void Start() {
-        last_tick_ = Clock::now();
-        net::dispatch(strand_, [self = shared_from_this()] {
-            self->ScheduleTick();
-        });
-    }
-
-    void Stop() {
-        net::dispatch(strand_, [self = shared_from_this()] {
-            self->timer_.cancel();
-        });
-    }
-
-private:
-    void ScheduleTick() {
-        timer_.expires_after(period_);
-        timer_.async_wait([self = shared_from_this()](sys::error_code ec) {
-            self->OnTick(ec);
-        });
-    }
-
-    void OnTick(sys::error_code ec) {
-        using namespace std::chrono;
-        
-        if (!ec) {
-            auto this_tick = Clock::now();
-            auto delta = duration_cast<milliseconds>(this_tick - last_tick_);
-            last_tick_ = this_tick;
-            
-            try {
-                handler_(delta);
-            } catch (...) {}
-            ScheduleTick();
-        }
-    }
-
-    using Clock = std::chrono::steady_clock;
-
-    Strand strand_;
-    std::chrono::milliseconds period_;
-    net::steady_timer timer_{strand_};
-    Handler handler_;
-    std::chrono::steady_clock::time_point last_tick_;
-};
 
 }  // namespace
 
@@ -219,7 +164,7 @@ int main(int argc, const char* argv[]) {
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
         
-        ServerLogger::log_server_start(port, address.to_string());
+        ServerLogger::LogServerStart(port, address.to_string());
 
         http_server::ServeHttp(ioc, {address, port}, [&handler](auto&& req, auto&& send) {
             handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
@@ -233,10 +178,10 @@ int main(int argc, const char* argv[]) {
             ticker->Stop();
         }
         
-        ServerLogger::log_server_exit(0);
+        ServerLogger::LogServerExit(0);
         
     } catch (const std::exception& ex) {
-        ServerLogger::log_server_exit(EXIT_FAILURE, ex.what());
+        ServerLogger::LogServerExit(EXIT_FAILURE, ex.what());
         std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;
     }

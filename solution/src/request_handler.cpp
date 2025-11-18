@@ -64,18 +64,15 @@ namespace http_handler
             {
                 return GetMapById(map_id, req);
             }
-            else
-            {
-                StringResponse response(http::status::method_not_allowed, req.version());
-                response.set(http::field::content_type, "application/json");
-                response.set(http::field::allow, "GET, HEAD");
-                response.set(http::field::cache_control, "no-cache");
-                response.body() = json::serialize(json::object{
-                    {"code", "invalidMethod"},
-                    {"message", "Invalid method"}});
-                response.prepare_payload();
-                return response;
-            }
+            StringResponse response(http::status::method_not_allowed, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::allow, "GET, HEAD");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(json::object{
+                {"code", "invalidMethod"},
+                {"message", "Invalid method"}});
+            response.prepare_payload();
+            return response;
         }
 
         if (target == API_V1_GAME_JOIN)
@@ -234,7 +231,7 @@ namespace http_handler
 
             auto player = session_manager_.AddPlayer(model::Map::Id(map_id), user_name);
 
-            json::object response_json; 
+            json::object response_json;
             response_json["authToken"] = player->GetAuthToken();
             response_json["playerId"] = player->GetId();
 
@@ -555,7 +552,7 @@ namespace http_handler
             json::object player_info;
 
             json::array pos_array;
-            pos_array.push_back(static_cast<double>(player->GetPosX())); 
+            pos_array.push_back(static_cast<double>(player->GetPosX()));
             pos_array.push_back(static_cast<double>(player->GetPosY()));
             player_info["pos"] = pos_array;
 
@@ -580,7 +577,7 @@ namespace http_handler
 
             players_json[std::to_string(player_id)] = player_info;
         }
-        
+
         json::object lost_objects_json;
         auto current_player = session_manager_.FindPlayerByToken(*auth_token);
         if (current_player)
@@ -592,7 +589,7 @@ namespace http_handler
                 obj_info["type"] = lost_obj.type;
 
                 json::array pos_array;
-                pos_array.push_back(static_cast<double>(lost_obj.position.x)); 
+                pos_array.push_back(static_cast<double>(lost_obj.position.x));
                 pos_array.push_back(static_cast<double>(lost_obj.position.y));
                 obj_info["pos"] = pos_array;
 

@@ -23,7 +23,7 @@ public:
         }
         
         // Логируем запрос
-        ServerLogger::log_request(client_ip, std::string(req.target()), std::string(req.method_string()));
+        ServerLogger::LogRequest(client_ip, std::string(req.target()), std::string(req.method_string()));
         
         // Вызываем оригинальный обработчик
         handler_(std::move(req), [&, start_time, client_ip](auto&& response) {
@@ -39,7 +39,7 @@ public:
             }
             
             // Логируем ответ
-            ServerLogger::log_response(client_ip, response_time, response.result_int(), content_type);
+            ServerLogger::LogResponse(client_ip, response_time, response.result_int(), content_type);
             
             // Передаем ответ дальше
             send(std::forward<decltype(response)>(response));

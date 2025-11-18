@@ -57,6 +57,8 @@ add_executable(game_server
     src/collision_detector.cpp
     src/collision_detector.h
     src/geom.h
+    src/player.cpp          
+    src/ticker.cpp 
 )
 
 # Указываем include директории

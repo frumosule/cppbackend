@@ -456,36 +456,37 @@ namespace model
         auto start_point = road->GetStart();
         auto end_point = road->GetEnd();
         double max_x, min_x, max_y, min_y;
+        static constexpr double ROAD_OFFSET = 0.4;
 
         if (road->IsHorizontal())
         {
             if (start_point.x < end_point.x)
             {
-                min_x = static_cast<double>(start_point.x) - 0.4;
-                max_x = static_cast<double>(end_point.x) + 0.4;
+                min_x = static_cast<double>(start_point.x) - ROAD_OFFSET;
+                max_x = static_cast<double>(end_point.x) + ROAD_OFFSET;
             }
             else
             {
-                min_x = static_cast<double>(end_point.x) - 0.4;
-                max_x = static_cast<double>(start_point.x) + 0.4;
+                min_x = static_cast<double>(end_point.x) - ROAD_OFFSET;
+                max_x = static_cast<double>(start_point.x) + ROAD_OFFSET;
             }
-            min_y = static_cast<double>(start_point.y) - 0.4;
-            max_y = static_cast<double>(start_point.y) + 0.4;
+            min_y = static_cast<double>(start_point.y) - ROAD_OFFSET;
+            max_y = static_cast<double>(start_point.y) + ROAD_OFFSET;
         }
         else
         {
             if (start_point.y < end_point.y)
             {
-                min_y = static_cast<double>(start_point.y) - 0.4;
-                max_y = static_cast<double>(end_point.y) + 0.4;
+                min_y = static_cast<double>(start_point.y) - ROAD_OFFSET;
+                max_y = static_cast<double>(end_point.y) + ROAD_OFFSET;
             }
             else
             {
-                min_y = static_cast<double>(end_point.y) - 0.4;
-                max_y = static_cast<double>(start_point.y) + 0.4;
+                min_y = static_cast<double>(end_point.y) - ROAD_OFFSET;
+                max_y = static_cast<double>(start_point.y) + ROAD_OFFSET;
             }
-            min_x = static_cast<double>(start_point.x) - 0.4;
-            max_x = static_cast<double>(start_point.x) + 0.4;
+            min_x = static_cast<double>(start_point.x) - ROAD_OFFSET;
+            max_x = static_cast<double>(start_point.x) + ROAD_OFFSET;
         }
 
         bool result = (x <= max_x && x >= min_x && y <= max_y && y >= min_y);
@@ -533,8 +534,11 @@ namespace model
         double in_seconds = static_cast<double>(delta) / MILLISECONDS_IN_SECOND;
         double end_x = x + speed_x * in_seconds;
         double end_y = y + speed_y * in_seconds;
+        static constexpr double POSITION_EPSILON = 0.001;
+        static constexpr double POSITION_Y = 0.4;
+        static constexpr double POSITION_X = 28.587;
 
-        if (std::abs(x - 28.587) < 0.001 && std::abs(y - 0.4) < 0.001)
+        if (std::abs(x - POSITION_X) < POSITION_EPSILON && std::abs(y - POSITION_Y) < POSITION_EPSILON)
         {
             std::cout << "=== SPECIAL DEBUG for test position ===" << std::endl;
             std::cout << "Moving from test position: (" << x << ", " << y << ")" << std::endl;
@@ -551,7 +555,7 @@ namespace model
 
         std::vector<Point> points_to_check = {rounded};
 
-        const double EPSILON = 0.1;
+        const double EPSILON = std::numeric_limits<double>::epsilon();
         if (std::abs(x - std::round(x)) < EPSILON)
         {
             points_to_check.push_back({rounded.x - 1, rounded.y});

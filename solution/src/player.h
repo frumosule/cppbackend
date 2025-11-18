@@ -6,131 +6,62 @@
 #include <vector>
 #include "model.h"
 
-namespace model
-{
+namespace model {
 
-    enum class Direction
-    {
+    enum class Direction {
         NORTH = 'U',
         SOUTH = 'D',
         WEST = 'L',
         EAST = 'R'
     };
 
-    struct BagItem
-    {
+    struct BagItem {
         LostObject::Id id;
         int type;
-        int value; 
+        int value;
 
-        BagItem(LostObject::Id id, int type, int value = 0)
-            : id(id), type(type), value(value) {}
-
-        bool operator==(const BagItem &other) const
-        {
-            return id == other.id && type == other.type;
-        }
+        BagItem(LostObject::Id id, int type, int value = 0);
+        bool operator==(const BagItem& other) const;
     };
 
-    class Player
-    {
+    class Player {
     public:
         using Id = size_t;
 
-        Player(Id id, std::string name, std::string auth_token, Map::Id map_id, double start_x, double start_y, size_t bag_capacity = 3)
-            : id_(id), name_(std::move(name)), auth_token_(std::move(auth_token)), 
-              map_id_(std::move(map_id)), pos_x_(start_x), pos_y_(start_y),
-              speed_x_(0.0), speed_y_(0.0), direction_(Direction::NORTH),
-              bag_capacity_(bag_capacity), score_(0)
-        {
-        } 
+        Player(Id id, std::string name, std::string auth_token, Map::Id map_id, 
+               double start_x, double start_y, size_t bag_capacity = 3);
 
-        Id GetId() const noexcept { return id_; }
-        const std::string &GetName() const noexcept { return name_; }
-        const std::string &GetAuthToken() const noexcept { return auth_token_; }
-        const Map::Id &GetMapId() const noexcept { return map_id_; }
+        Id GetId() const noexcept;
+        const std::string& GetName() const noexcept;
+        const std::string& GetAuthToken() const noexcept;
+        const Map::Id& GetMapId() const noexcept;
 
-        double GetPosX() const noexcept { return pos_x_; }
-        double GetPosY() const noexcept { return pos_y_; }
-        void SetPosition(double x, double y)
-        {
-            pos_x_ = x;
-            pos_y_ = y;
-        }
+        double GetPosX() const noexcept;
+        double GetPosY() const noexcept;
+        void SetPosition(double x, double y);
 
-        double GetSpeedX() const noexcept { return speed_x_; }
-        double GetSpeedY() const noexcept { return speed_y_; }
-        void SetSpeed(double speed_x, double speed_y)
-        {
-            speed_x_ = speed_x;
-            speed_y_ = speed_y;
-        }
+        double GetSpeedX() const noexcept;
+        double GetSpeedY() const noexcept;
+        void SetSpeed(double speed_x, double speed_y);
 
-        Direction GetDirection() const noexcept { return direction_; }
-        void SetDirection(Direction dir) { direction_ = dir; }
+        Direction GetDirection() const noexcept;
+        void SetDirection(Direction dir);
+        char GetDirectionChar() const noexcept;
 
-        char GetDirectionChar() const noexcept
-        {
-            return static_cast<char>(direction_);
-        }
+        const std::vector<BagItem>& GetBag() const noexcept;
+        size_t GetBagCapacity() const noexcept;
+        size_t GetBagSize() const noexcept;
+        bool IsBagFull() const noexcept;
+        void SetBagCapacity(size_t capacity);
 
-        const std::vector<BagItem> &GetBag() const noexcept { return bag_; }
-        size_t GetBagCapacity() const noexcept { return bag_capacity_; }
-        size_t GetBagSize() const noexcept { return bag_.size(); }
-        bool IsBagFull() const noexcept { return bag_.size() >= bag_capacity_; }
+        bool AddToBag(LostObject::Id id, int type, int value = 0);
+        void ClearBag();
+        bool HasItem(LostObject::Id id) const;
+        bool RemoveFromBag(LostObject::Id id);
 
-        void SetBagCapacity(size_t capacity) { bag_capacity_ = capacity; }
-
-        bool AddToBag(LostObject::Id id, int type, int value = 0)
-        {
-            if (IsBagFull())
-            {
-                return false;
-            }
-            for (const auto &item : bag_)
-            {
-                if (item.id == id)
-                {
-                    return false; 
-                }
-            }
-            bag_.emplace_back(id, type, value); 
-            return true;
-        }
-
-        void ClearBag()
-        {
-            bag_.clear();
-        }
-
-        bool HasItem(LostObject::Id id) const
-        {
-            for (const auto &item : bag_)
-            {
-                if (item.id == id)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool RemoveFromBag(LostObject::Id id)
-        {
-            for (auto it = bag_.begin(); it != bag_.end(); ++it)
-            {
-                if (it->id == id)
-                {
-                    bag_.erase(it);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        int GetScore() const noexcept { return score_; }
-        void AddScore(int points) { score_ += points; }
-        void SetScore(int score) { score_ = score; }
+        int GetScore() const noexcept;
+        void AddScore(int points);
+        void SetScore(int score);
 
     private:
         Id id_;
@@ -142,46 +73,24 @@ namespace model
         double speed_x_;
         double speed_y_;
         Direction direction_;
-
         std::vector<BagItem> bag_;
         size_t bag_capacity_;
-        int score_ = 0; 
+        int score_ = 0;
     };
 
-    class GameSession
-    {
+    class GameSession {
     public:
         using Id = Map::Id;
 
-        explicit GameSession(Map::Id map_id) : map_id_(std::move(map_id)) {}
+        explicit GameSession(Map::Id map_id);
+        const Map::Id& GetId() const noexcept;
 
-        const Map::Id &GetId() const noexcept { return map_id_; }
-
-        void AddPlayer(std::shared_ptr<Player> player)
-        {
-            players_[player->GetId()] = player;
-        }
-
-        void RemovePlayer(Player::Id player_id)
-        {
-            players_.erase(player_id);
-        }
-
-        const std::unordered_map<Player::Id, std::shared_ptr<Player>> &GetPlayers() const noexcept
-        {
-            return players_;
-        }
-
-        std::shared_ptr<Player> FindPlayer(Player::Id player_id) const
-        {
-            auto it = players_.find(player_id);
-            return it != players_.end() ? it->second : nullptr;
-        }
-
-        bool HasPlayer(Player::Id player_id) const
-        {
-            return players_.find(player_id) != players_.end();
-        }
+        void AddPlayer(std::shared_ptr<Player> player);
+        void RemovePlayer(Player::Id player_id);
+        
+        const std::unordered_map<Player::Id, std::shared_ptr<Player>>& GetPlayers() const noexcept;
+        std::shared_ptr<Player> FindPlayer(Player::Id player_id) const;
+        bool HasPlayer(Player::Id player_id) const;
 
     private:
         Map::Id map_id_;
