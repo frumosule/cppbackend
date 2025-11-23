@@ -32,6 +32,9 @@ set(Catch2_LIBRARIES ${catch2_LIBRARIES_RELEASE} )
 set(Catch2_DEFINITIONS ${catch2_DEFINITIONS_RELEASE} )
 
 
+# Definition of extra CMake variables from cmake_extra_variables
+
+
 # Only the last installed configuration BUILD_MODULES are included to avoid the collision
 foreach(_BUILD_MODULE ${catch2_BUILD_MODULES_PATHS_RELEASE} )
     message(${Catch2_MESSAGE_MODE} "Conan: Including build module from '${_BUILD_MODULE}'")

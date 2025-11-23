@@ -32,6 +32,9 @@ set(BZip2_LIBRARIES ${bzip2_LIBRARIES_RELEASE} )
 set(BZip2_DEFINITIONS ${bzip2_DEFINITIONS_RELEASE} )
 
 
+# Definition of extra CMake variables from cmake_extra_variables
+
+
 # Only the last installed configuration BUILD_MODULES are included to avoid the collision
 foreach(_BUILD_MODULE ${bzip2_BUILD_MODULES_PATHS_RELEASE} )
     message(${BZip2_MESSAGE_MODE} "Conan: Including build module from '${_BUILD_MODULE}'")

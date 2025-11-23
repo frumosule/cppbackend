@@ -32,6 +32,9 @@ set(Boost_LIBRARIES ${boost_LIBRARIES_RELEASE} )
 set(Boost_DEFINITIONS ${boost_DEFINITIONS_RELEASE} )
 
 
+# Definition of extra CMake variables from cmake_extra_variables
+
+
 # Only the last installed configuration BUILD_MODULES are included to avoid the collision
 foreach(_BUILD_MODULE ${boost_BUILD_MODULES_PATHS_RELEASE} )
     message(${Boost_MESSAGE_MODE} "Conan: Including build module from '${_BUILD_MODULE}'")

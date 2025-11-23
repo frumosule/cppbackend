@@ -274,6 +274,7 @@ namespace http_handler
         auto player = session_manager_.FindPlayerByToken(*auth_token);
         if (!player)
         {
+            std::cout << "REQUEST_HANDLER: players is EMPTY - returning 401 - line 277" << std::endl;
             return MakeJsonResponse(http::status::unauthorized,
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }
@@ -333,6 +334,7 @@ namespace http_handler
         auto player = session_manager_.FindPlayerByToken(*auth_token);
         if (!player)
         {
+            std::cout << "REQUEST_HANDLER: players is EMPTY - returning 401 - line 337" << std::endl;
             return MakeJsonResponse(http::status::unauthorized,
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }
@@ -367,6 +369,7 @@ namespace http_handler
 
             if (!session_manager_.UpdatePlayerAction(*auth_token, move))
             {
+                std::cout << "REQUEST_HANDLER: players is EMPTY - returning 401 - line 372" << std::endl;
                 return MakeJsonResponse(http::status::unauthorized,
                                         json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
             }
@@ -545,8 +548,10 @@ namespace http_handler
         }
 
         auto players = session_manager_.GetPlayersByToken(*auth_token);
+        std::cout << "REQUEST_HANDLER: After GetPlayersByToken - players size: " << players.size() << std::endl;
         if (players.empty())
         {
+            std::cout << "REQUEST_HANDLER: players is EMPTY - returning 401 - line 554" << std::endl;
             return MakeJsonResponse(http::status::unauthorized,
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }

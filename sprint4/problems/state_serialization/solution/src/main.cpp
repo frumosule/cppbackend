@@ -160,6 +160,9 @@ int main(int argc, const char *argv[])
                                    ? std::chrono::milliseconds(args.save_state_period)
                                    : std::chrono::milliseconds(0);
 
+            std::cout << "State file: " << args.state_file 
+              << ", save period: " << save_period.count() << "ms" << std::endl;
+
             auto serializing_listener = std::make_shared<infrastructure::SerializingListener>(
                 session_manager, args.state_file, save_period);
             session_manager.AddListener(serializing_listener);
@@ -174,10 +177,10 @@ int main(int argc, const char *argv[])
             auto period = std::chrono::milliseconds(args.tick_period);
 
             ticker = std::make_shared<Ticker>(ioc, period,
-                                              [&session_manager](std::chrono::milliseconds delta) { // ← ИСПРАВЛЕНО
-                                                  session_manager.UpdateGameState(delta.count());
-                                                  session_manager.NotifyListeners(delta);
-                                              });
+                                  [&session_manager](std::chrono::milliseconds delta) {
+                                      session_manager.UpdateGameState(delta.count());  // ← УБРАТЬ .count()
+                                      session_manager.NotifyListeners(delta);
+                                  });
             ticker->Start();
         }
         else

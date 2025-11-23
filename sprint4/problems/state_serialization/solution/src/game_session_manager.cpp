@@ -53,6 +53,9 @@ namespace model
 
         auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token,
                                                map_id, pos_x, pos_y, bag_capacity);
+        std::cout << "ADD_PLAYER: Created player " << player->GetName()
+                  << " at address: " << player.get()
+                  << ", use_count: " << player.use_count() << std::endl;
 
         session->players[player->GetId()] = player;
         players_by_token_[auth_token] = player;
@@ -63,8 +66,14 @@ namespace model
 
     std::shared_ptr<Player> GameSessionManager::FindPlayerByToken(const std::string &auth_token)
     {
+        std::cout << "FIND_PLAYER: Attempting to lock mutex for token: " << auth_token << std::endl;
         std::lock_guard<std::mutex> lock(mutex_);
-        return FindPlayerByTokenUnsafe(auth_token);
+        std::cout << "FIND_PLAYER: Mutex locked successfully" << std::endl;
+
+        auto result = FindPlayerByTokenUnsafe(auth_token);
+        std::cout << "FIND_PLAYER: Found player: " << (result ? result->GetName() : "NULL") << std::endl;
+
+        return result;
     }
 
     std::shared_ptr<Player> GameSessionManager::FindPlayerById(Player::Id player_id)
@@ -122,17 +131,24 @@ namespace model
 
     std::unordered_map<Player::Id, std::shared_ptr<Player>> GameSessionManager::GetPlayersByToken(const std::string &auth_token)
     {
+        std::cout << "GET_PLAYERS_BY_TOKEN: Looking for token: " << auth_token << std::endl;
         std::lock_guard<std::mutex> lock(mutex_);
 
         auto current_player = FindPlayerByTokenUnsafe(auth_token);
+
+        std::cout << "GET_PLAYERS_BY_TOKEN: Found player: " << (current_player ? current_player->GetName() : "NULL") << std::endl;
+        std::cout << "GET_PLAYERS_BY_TOKEN: Player pointer: " << current_player.get() << std::endl;
         if (!current_player)
         {
+            std::cout << "GET_PLAYERS_BY_TOKEN: Player not found - returning empty" << std::endl;
             return {};
         }
 
         auto session = FindSessionUnsafe(current_player->GetMapId());
+        std::cout << "GET_PLAYERS_BY_TOKEN: Session found: " << (session ? "YES" : "NO") << std::endl;
         if (!session)
         {
+            std::cout << "GET_PLAYERS_BY_TOKEN: Session players count: " << session->players.size() << std::endl;
             return {};
         }
 
@@ -661,8 +677,15 @@ namespace model
 
     std::shared_ptr<Player> GameSessionManager::FindPlayerByTokenUnsafe(const std::string &auth_token)
     {
+        std::cout << "DEBUG: Looking for token: " << auth_token << std::endl;
+
         auto it = players_by_token_.find(auth_token);
-        return it != players_by_token_.end() ? it->second : nullptr;
+        auto result = it != players_by_token_.end() ? it->second : nullptr;
+
+        std::cout << "DEBUG: Found player: " << (result ? result->GetName() : "NULL") << std::endl;
+        std::cout << "DEBUG: Player pointer: " << result.get() << std::endl;
+
+        return result;
     }
 
     size_t GameSessionManager::GetBagCapacityForMap(const Map::Id &map_id) const
@@ -736,7 +759,7 @@ namespace model
             player_obj["pos_y"] = player->GetPosY();
             player_obj["speed_x"] = player->GetSpeedX();
             player_obj["speed_y"] = player->GetSpeedY();
-            player_obj["direction"] = static_cast<char>(player->GetDirection());
+            player_obj["direction"] = std::string(1, static_cast<char>(player->GetDirection()));
             player_obj["score"] = player->GetScore();
             player_obj["bag_capacity"] = player->GetBagCapacity();
 
@@ -802,80 +825,35 @@ namespace model
 
         if (content.empty())
         {
+            std::cout << "DESERIALIZE: Empty state file, starting fresh" << std::endl;
             return; // Пустой файл - начинаем с чистого листа
         }
 
         try
         {
             auto state = boost::json::parse(content).as_object();
+            std::cout << "DESERIALIZE: Parsed state JSON successfully" << std::endl;
 
             // Восстанавливаем next_player_id
             if (state.contains("next_player_id"))
             {
                 next_player_id_ = state["next_player_id"].as_int64();
+                std::cout << "DESERIALIZE: Restored next_player_id: " << next_player_id_ << std::endl;
             }
 
             // Восстанавливаем randomize_spawn
             if (state.contains("randomize_spawn"))
             {
                 randomize_spawn_ = state["randomize_spawn"].as_bool();
+                std::cout << "DESERIALIZE: Restored randomize_spawn: " << randomize_spawn_ << std::endl;
             }
 
-            // Восстанавливаем игроков
-            if (state.contains("players"))
-            {
-                const auto &players_array = state["players"].as_array();
-                for (const auto &player_val : players_array)
-                {
-                    const auto &player_obj = player_val.as_object();
-
-                    Player::Id id = player_obj.at("id").as_int64();
-                    std::string name = player_obj.at("name").as_string().c_str();
-                    std::string auth_token = player_obj.at("auth_token").as_string().c_str();
-                    Map::Id map_id(player_obj.at("map_id").as_string().c_str());
-                    double pos_x = player_obj.at("pos_x").as_double();
-                    double pos_y = player_obj.at("pos_y").as_double();
-                    double speed_x = player_obj.at("speed_x").as_double();
-                    double speed_y = player_obj.at("speed_y").as_double();
-                    char direction_char = player_obj.at("direction").as_string()[0];
-                    int score = player_obj.at("score").as_int64();
-                    size_t bag_capacity = player_obj.at("bag_capacity").as_int64();
-
-                    auto player = std::make_shared<Player>(id, name, auth_token, map_id, pos_x, pos_y, bag_capacity);
-                    player->SetSpeed(speed_x, speed_y);
-                    player->SetDirection(static_cast<Direction>(direction_char));
-                    player->SetScore(score);
-
-                    // Восстанавливаем сумку
-                    if (player_obj.contains("bag"))
-                    {
-                        const auto &bag_array = player_obj.at("bag").as_array();
-                        for (const auto &item_val : bag_array)
-                        {
-                            const auto &item_obj = item_val.as_object();
-                            LostObject::Id item_id = item_obj.at("id").as_int64();
-                            int type = item_obj.at("type").as_int64();
-                            int value = item_obj.at("value").as_int64();
-                            player->AddToBag(item_id, type, value);
-                        }
-                    }
-
-                    // Добавляем игрока в соответствующие контейнеры
-                    auto session = FindSessionUnsafe(map_id);
-                    if (!session)
-                    {
-                        session = CreateSessionUnsafe(map_id);
-                    }
-                    session->players[id] = player;
-                    players_by_token_[auth_token] = player;
-                    players_by_id_[id] = player;
-                }
-            }
-
-            // Восстанавливаем сессии и потерянные предметы
+            // ВОССТАНАВЛИВАЕМ СЕССИИ ПЕРВЫМИ!
             if (state.contains("sessions"))
             {
                 const auto &sessions_array = state["sessions"].as_array();
+                std::cout << "DESERIALIZE: Restoring " << sessions_array.size() << " sessions" << std::endl;
+
                 for (const auto &session_val : sessions_array)
                 {
                     const auto &session_obj = session_val.as_object();
@@ -884,10 +862,15 @@ namespace model
                     auto session_data = std::make_shared<SessionData>();
                     session_data->next_lost_object_id = session_obj.at("next_lost_object_id").as_int64();
 
+                    std::cout << "DESERIALIZE: Creating session for map: " << *map_id
+                              << ", next_lost_object_id: " << session_data->next_lost_object_id << std::endl;
+
                     // Восстанавливаем потерянные предметы
                     if (session_obj.contains("lost_objects"))
                     {
                         const auto &lost_objects_array = session_obj.at("lost_objects").as_array();
+                        std::cout << "DESERIALIZE: Restoring " << lost_objects_array.size() << " lost objects" << std::endl;
+
                         for (const auto &obj_val : lost_objects_array)
                         {
                             const auto &obj = obj_val.as_object();
@@ -904,13 +887,106 @@ namespace model
                     }
 
                     sessions_[map_id] = session_data;
+                    std::cout << "DESERIALIZE: Session created for map: " << *map_id << std::endl;
                 }
             }
+            else
+            {
+                std::cout << "DESERIALIZE: No sessions found in state file" << std::endl;
+            }
+
+            // Восстанавливаем игроков ПОСЛЕ сессий
+            if (state.contains("players"))
+            {
+                const auto &players_array = state["players"].as_array();
+                std::cout << "DESERIALIZE: Restoring " << players_array.size() << " players" << std::endl;
+
+                for (const auto &player_val : players_array)
+                {
+                    const auto &player_obj = player_val.as_object();
+
+                    Player::Id id = player_obj.at("id").as_int64();
+                    std::string name = player_obj.at("name").as_string().c_str();
+                    std::string auth_token = player_obj.at("auth_token").as_string().c_str();
+                    Map::Id map_id(player_obj.at("map_id").as_string().c_str());
+                    double pos_x = player_obj.at("pos_x").as_double();
+                    double pos_y = player_obj.at("pos_y").as_double();
+                    double speed_x = player_obj.at("speed_x").as_double();
+                    double speed_y = player_obj.at("speed_y").as_double();
+                    char direction_char = player_obj.at("direction").as_string().c_str()[0];
+                    int score = player_obj.at("score").as_int64();
+                    size_t bag_capacity = player_obj.at("bag_capacity").as_int64();
+
+                    std::cout << "DESERIALIZE: Processing player: " << name << " (ID: " << id << ")" << std::endl;
+
+                    if (players_by_id_.find(id) != players_by_id_.end())
+                    {
+                        std::cout << "WARNING: Duplicate player ID: " << id << " - skipping" << std::endl;
+                        continue; // Пропусти дубликат
+                    }
+
+                    auto player = std::make_shared<Player>(id, name, auth_token, map_id, pos_x, pos_y, bag_capacity);
+                    std::cout << "DESERIALIZE: Created player " << player->GetName()
+                              << " at address: " << player.get()
+                              << ", use_count: " << player.use_count() << std::endl;
+                    player->SetSpeed(speed_x, speed_y);
+                    player->SetDirection(static_cast<Direction>(direction_char));
+                    player->SetScore(score);
+
+                    // Восстанавливаем сумку
+                    if (player_obj.contains("bag"))
+                    {
+                        const auto &bag_array = player_obj.at("bag").as_array();
+                        std::cout << "DESERIALIZE: Restoring bag with " << bag_array.size() << " items" << std::endl;
+
+                        for (const auto &item_val : bag_array)
+                        {
+                            const auto &item_obj = item_val.as_object();
+                            LostObject::Id item_id = item_obj.at("id").as_int64();
+                            int type = item_obj.at("type").as_int64();
+                            int value = item_obj.at("value").as_int64();
+                            player->AddToBag(item_id, type, value);
+                        }
+                    }
+
+                    // Добавляем игрока в соответствующие контейнеры
+                    auto session = FindSessionUnsafe(map_id);
+                    if (!session)
+                    {
+                        std::cout << "DESERIALIZE: No session found for map " << *map_id << ", creating new one" << std::endl;
+                        session = CreateSessionUnsafe(map_id);
+                    }
+                    else
+                    {
+                        std::cout << "DESERIALIZE: Found existing session for map " << *map_id << std::endl;
+                    }
+
+                    session->players[id] = player;
+                    players_by_id_[id] = player;
+
+                    std::cout << "DESERIALIZE: Added player to session, session now has " << session->players.size() << " players" << std::endl;
+                }
+
+                // Заполняем players_by_token_ после восстановления всех игроков
+                std::cout << "DESERIALIZE: Filling players_by_token_ with " << players_by_id_.size() << " players" << std::endl;
+                for (const auto &[player_id, player] : players_by_id_)
+                {
+                    players_by_token_[player->GetAuthToken()] = player;
+                    std::cout << "Restored player token: " << player->GetAuthToken()
+                              << " for player: " << player->GetName() << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "DESERIALIZE: No players found in state file" << std::endl;
+            }
+
+            std::cout << "DESERIALIZE: Completed successfully. Total sessions: " << sessions_.size()
+                      << ", total players: " << players_by_id_.size() << std::endl;
         }
         catch (const std::exception &ex)
         {
             throw std::runtime_error("Failed to deserialize game state: " + std::string(ex.what()));
         }
     }
-
 } // namespace model
