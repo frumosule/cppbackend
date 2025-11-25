@@ -24,6 +24,8 @@ find_package(Boost 1.84.0 REQUIRED
 
 find_package(Catch2 REQUIRED)
 
+find_package(libpqxx REQUIRED)
+
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
@@ -82,6 +84,7 @@ target_link_libraries(game_server PRIVATE
     Boost::log
     Boost::program_options
     Boost::date_time
+    libpqxx::pqxx
 )
 
 if(WIN32)
@@ -121,6 +124,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
         Boost::program_options
         Boost::date_time
         Catch2::Catch2WithMain 
+        libpqxx::pqxx
     )
     
     add_custom_target(run_tests
