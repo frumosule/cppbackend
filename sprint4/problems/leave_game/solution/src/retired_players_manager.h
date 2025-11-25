@@ -75,7 +75,7 @@ private:
             
             CREATE INDEX IF NOT EXISTS idx_retired_players_score_time_name 
             ON retired_players (score DESC, play_time_ms ASC, name ASC);
-        )"_zv);
+        )");
         
         // Подготавливаем запросы
         conn.prepare("add_retired_player", 

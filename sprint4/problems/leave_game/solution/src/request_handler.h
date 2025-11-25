@@ -2,6 +2,7 @@
 
 #include "model.h"
 #include "game_session_manager.h"
+#include "retired_players_manager.h"
 #include <string>
 #include <filesystem>
 #include <unordered_map>

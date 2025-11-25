@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <forward_list>
+#include "retired_players_manager.h"
 
 namespace model {
 
@@ -79,6 +80,8 @@ private:
 
     std::unique_ptr<loot_gen::LootGenerator> loot_generator_;
     std::unordered_map<Map::Id, std::unordered_map<int, int>, Game::MapIdHasher> map_loot_values_;
+
+    std::shared_ptr<RetiredPlayersManager> retired_players_manager_; 
     
     std::string GenerateAuthToken();
     std::pair<double, double> GetRandomPositionOnRoad(const Map::Id& map_id);

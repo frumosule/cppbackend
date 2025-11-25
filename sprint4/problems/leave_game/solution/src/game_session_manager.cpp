@@ -994,12 +994,12 @@ namespace model
         }
     }
 
-    void SetRetirementTimeout(std::chrono::seconds timeout)
+    void GameSessionManager::SetRetirementTimeout(std::chrono::seconds timeout)
     {
         retirement_timeout_ = timeout;
     }
 
-    void OnPlayerMovement(Player::Id player_id)
+    void GameSessionManager::OnPlayerMovement(Player::Id player_id)
     {
         auto it = player_sessions_.find(player_id);
         if (it != player_sessions_.end())
@@ -1008,7 +1008,7 @@ namespace model
         }
     }
 
-    void CheckInactivePlayers(RetiredPlayersManager &retired_mgr)
+    void GameSessionManager::CheckInactivePlayers(RetiredPlayersManager &retired_mgr)
     {
         auto now = std::chrono::steady_clock::now();
 
@@ -1040,5 +1040,9 @@ namespace model
                 ++it;
             }
         }
+    }
+
+    void GameSessionManager::SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) {
+        retired_players_manager_ = manager;
     }
 } // namespace model

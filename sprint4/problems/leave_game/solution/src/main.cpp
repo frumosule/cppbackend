@@ -101,7 +101,7 @@ int main(int argc, const char *argv[])
         model::Game game = std::move(load_result.game);
         
         // Получаем конфигурацию для доступа к dogRetirementTime
-        auto config = json_loader::LoadConfig(args.config_file);  // Добавьте этот метод в json_loader
+        auto config = json_loader::detail::LoadConfig(args.config_file);
 
         model::GameSessionManager session_manager(game);
 
