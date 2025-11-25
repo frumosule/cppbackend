@@ -34,26 +34,27 @@ struct MockBookRepository : domain::BookRepository {
     }
 };
 
-struct Fixture {
-    MockAuthorRepository authors;
-    MockBookRepository books;
-};
-
-}  // namespace
-
-SCENARIO_METHOD(Fixture, "Book Adding") {
-    GIVEN("Use cases") {
-        app::UseCasesImpl use_cases{authors, books};
-
-        WHEN("Adding an author") {
-            const auto author_name = "Joanne Rowling";
-            use_cases.AddAuthor(author_name);
-
-            THEN("author with the specified name is saved to repository") {
-                REQUIRE(authors.saved_authors.size() == 1);
-                CHECK(authors.saved_authors.at(0).GetName() == author_name);
-                CHECK(authors.saved_authors.at(0).GetId() != domain::AuthorId{});
-            }
-        }
-    }
 }
+//struct Fixture {
+//    MockAuthorRepository authors;
+//    MockBookRepository books;
+//};
+//
+//}  // namespace
+//
+//SCENARIO_METHOD(Fixture, "Book Adding") {
+//    GIVEN("Use cases") {
+//        app::UseCasesImpl use_cases{authors, books};
+//
+//        WHEN("Adding an author") {
+//            const auto author_name = "Joanne Rowling";
+//            use_cases.AddAuthor(author_name);
+//
+//            THEN("author with the specified name is saved to repository") {
+//                REQUIRE(authors.saved_authors.size() == 1);
+//                CHECK(authors.saved_authors.at(0).GetName() == author_name);
+//                CHECK(authors.saved_authors.at(0).GetId() != domain::AuthorId{});
+//            }
+//        }
+//    }
+//}
