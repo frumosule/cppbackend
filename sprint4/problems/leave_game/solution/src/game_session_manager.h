@@ -39,10 +39,12 @@ public:
     void Serialize(std::ostream& out) const;
     void Deserialize(std::istream& in);
 
-    void SetRetirementTimeout(std::chrono::milliseconds timeout);
-    void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager);
-    void OnPlayerMovement(Player::Id player_id);
+    void SetRetirementTimeout(std::chrono::milliseconds timeout) { retirement_timeout_ = timeout; }
+    
+    void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) { retired_players_manager_ = manager; }
+    
     void CheckInactivePlayers();
+    void OnPlayerMovement(Player::Id player_id);
 
 private:
     Game& game_;

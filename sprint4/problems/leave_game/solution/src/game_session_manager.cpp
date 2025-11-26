@@ -6,6 +6,7 @@
 #include <mutex>
 #include <cmath>
 #include <boost/json.hpp>
+#include <chrono> 
 
 namespace model
 {
@@ -994,11 +995,6 @@ namespace model
         }
     }
 
-    void GameSessionManager::SetRetirementTimeout(std::chrono::seconds timeout)
-    {
-        retirement_timeout_ = timeout;
-    }
-
     void GameSessionManager::OnPlayerMovement(Player::Id player_id)
     {
         auto it = player_sessions_.find(player_id);
@@ -1008,41 +1004,87 @@ namespace model
         }
     }
 
-    void GameSessionManager::CheckInactivePlayers(RetiredPlayersManager &retired_mgr)
+    void GameSessionManager::CheckInactivePlayers()
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         auto now = std::chrono::steady_clock::now();
 
-        for (auto it = player_sessions_.begin(); it != player_sessions_.end();)
+        std::vector<Player::Id> players_to_retire;
+
+        for (auto &[player_id, session_data] : player_sessions_)
         {
-            auto inactive_duration = now - it->second.last_movement_time;
+            if (!session_data.is_active)
+                continue;
+
+            auto inactive_duration = now - session_data.last_movement_time;
 
             if (inactive_duration >= retirement_timeout_)
             {
-                // Игрок уходит на пенсию
-                auto player = FindPlayerById(it->first);
-                if (player)
-                {
-                    auto play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        now - it->second.join_time);
-
-                    retired_mgr.AddRetiredPlayer(
-                        player->GetName(),
-                        player->GetScore(),
-                        play_time.count());
-
-                    // Удаляем игрока из игры
-                    RemovePlayer(it->first);
-                }
-                it = player_sessions_.erase(it);
+                players_to_retire.push_back(player_id);
+                session_data.is_active = false;
             }
-            else
-            {
-                ++it;
-            }
+        }
+
+        // Удаляем игроков вне цикла
+        for (auto player_id : players_to_retire)
+        {
+            RetirePlayer(player_id);
         }
     }
 
-    void GameSessionManager::SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) {
-        retired_players_manager_ = manager;
+    void GameSessionManager::RetirePlayer(Player::Id player_id)
+    {
+        auto player_it = players_by_id_.find(player_id);
+        if (player_it == players_by_id_.end())
+            return;
+
+        auto player = player_it->second;
+
+        // Рассчитываем время игры
+        auto session_it = player_sessions_.find(player_id);
+        if (session_it == player_sessions_.end())
+            return;
+
+        auto play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - session_it->second.join_time);
+
+        // Добавляем в таблицу рекордов
+        if (retired_players_manager_)
+        {
+            retired_players_manager_->AddRetiredPlayer(
+                player->GetName(),
+                player->GetScore(),
+                play_time.count());
+
+            std::cout << "Player " << player->GetName() << " retired after "
+                      << play_time.count() / 1000.0 << " seconds with score "
+                      << player->GetScore() << std::endl;
+        }
+
+        // Удаляем игрока из игры
+        RemovePlayerUnsafe(player_id);
+        player_sessions_.erase(player_id);
+    }
+
+    void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
+    {
+        // Удаляем из players_by_id_
+        auto player_it = players_by_id_.find(player_id);
+        if (player_it != players_by_id_.end())
+        {
+            // Удаляем из players_by_token_
+            auto token = player_it->second->GetAuthToken();
+            players_by_token_.erase(token);
+
+            // Удаляем из сессии
+            auto map_id = player_it->second->GetMapId();
+            auto session = FindSessionUnsafe(map_id);
+            if (session)
+            {
+                session->players.erase(player_id);
+            }
+
+            players_by_id_.erase(player_it);
+        }
     }
 } // namespace model

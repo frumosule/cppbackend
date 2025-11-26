@@ -7,6 +7,8 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
+#include <vector>
+#include <iostream>
 
 class DatabaseConnectionPool {
 private:
