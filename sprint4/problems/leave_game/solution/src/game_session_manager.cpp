@@ -1018,7 +1018,7 @@ namespace model
 
             auto inactive_duration = now - session_data.last_movement_time;
 
-            if (inactive_duration >= retirement_timeout_)
+            if (inactive_duration > retirement_timeout_)
             {
                 players_to_retire.push_back(player_id);
                 session_data.is_active = false;

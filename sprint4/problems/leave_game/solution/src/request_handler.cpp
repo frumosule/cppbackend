@@ -904,10 +904,14 @@ namespace http_handler
     {
         if (!retired_players_manager_)
         {
-            return MakeJsonResponse(http::status::internal_server_error,
-                                    json::object{{"code", "internalError"},
-                                                 {"message", "Records service unavailable"}},
-                                    req);
+            // Возвращаем 200 OK с пустым массивом вместо 500 ошибки
+            boost::json::array empty_array;
+            StringResponse response(http::status::ok, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(empty_array);
+            response.prepare_payload();
+            return response;
         }
 
         try
@@ -941,6 +945,14 @@ namespace http_handler
                         else if (key == "maxItems")
                         {
                             max_items = std::stoi(value);
+
+                            if (max_items > 100)
+                            {
+                                return MakeJsonResponse(http::status::bad_request,
+                                                        json::object{{"code", "invalidArgument"},
+                                                                     {"message", "maxItems cannot exceed 100"}},
+                                                        req);
+                            }
                             max_items = std::max(1, std::min(100, max_items));
                         }
                     }
