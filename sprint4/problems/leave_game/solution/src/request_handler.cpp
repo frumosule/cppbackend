@@ -909,62 +909,61 @@ namespace http_handler
                                                  {"message", "Records service unavailable"}},
                                     req);
         }
+
         try
         {
-            try
+            // Парсим query parameters
+            std::string query = std::string(req.target());
+            size_t question_pos = query.find('?');
+
+            int start = 0;
+            int max_items = 100;
+
+            if (question_pos != std::string::npos)
             {
-                // Парсим query parameters
-                std::string query = std::string(req.target());
-                size_t question_pos = query.find('?');
+                std::string params_str = query.substr(question_pos + 1);
+                std::istringstream params_stream(params_str);
+                std::string param;
 
-                int start = 0;
-                int max_items = 100;
-
-                if (question_pos != std::string::npos)
+                while (std::getline(params_stream, param, '&'))
                 {
-                    std::string params_str = query.substr(question_pos + 1);
-                    std::istringstream params_stream(params_str);
-                    std::string param;
-
-                    while (std::getline(params_stream, param, '&'))
+                    size_t equals_pos = param.find('=');
+                    if (equals_pos != std::string::npos)
                     {
-                        size_t equals_pos = param.find('=');
-                        if (equals_pos != std::string::npos)
-                        {
-                            std::string key = param.substr(0, equals_pos);
-                            std::string value = param.substr(equals_pos + 1);
+                        std::string key = param.substr(0, equals_pos);
+                        std::string value = param.substr(equals_pos + 1);
 
-                            if (key == "start")
-                            {
-                                start = std::stoi(value);
-                                start = std::max(0, start); // Не может быть отрицательным
-                            }
-                            else if (key == "maxItems")
-                            {
-                                max_items = std::stoi(value);
-                                max_items = std::max(1, std::min(100, max_items)); // Ограничиваем 1-100
-                            }
+                        if (key == "start")
+                        {
+                            start = std::stoi(value);
+                            start = std::max(0, start);
+                        }
+                        else if (key == "maxItems")
+                        {
+                            max_items = std::stoi(value);
+                            max_items = std::max(1, std::min(100, max_items));
                         }
                     }
                 }
-
-                auto records = retired_players_manager_.GetRecords(start, max_items);
-
-                StringResponse response(http::status::ok, req.version());
-                response.set(http::field::content_type, "application/json");
-                response.set(http::field::cache_control, "no-cache");
-                response.body() = json::serialize(records);
-                response.prepare_payload();
-
-                return response;
             }
-            catch (const std::exception &e)
-            {
-                return MakeJsonResponse(http::status::bad_request,
-                                        json::object{{"code", "invalidArgument"},
-                                                     {"message", "Invalid parameters"}},
-                                        req);
-            }
+
+            auto records = retired_players_manager_->GetRecords(start, max_items);
+
+            StringResponse response(http::status::ok, req.version());
+            response.set(http::field::content_type, "application/json");
+            response.set(http::field::cache_control, "no-cache");
+            response.body() = json::serialize(records);
+            response.prepare_payload();
+
+            return response;
         }
+        catch (const std::exception &e)
+        {
+            return MakeJsonResponse(http::status::bad_request,
+                                    json::object{{"code", "invalidArgument"},
+                                                 {"message", "Invalid parameters: " + std::string(e.what())}},
+                                    req);
+        }
+    }
 
-    } // namespace http_handler
+} // namespace http_handler
