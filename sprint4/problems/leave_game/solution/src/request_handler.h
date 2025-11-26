@@ -40,6 +40,7 @@ namespace http_handler
 
         void SetAutoTickMode(bool auto_tick) { auto_tick_mode_ = auto_tick; }
         bool IsAutoTickMode() const { return auto_tick_mode_; }
+        void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) { retired_players_manager_ = manager; }
 
     private:
         model::Game &game_;

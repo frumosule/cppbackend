@@ -171,7 +171,7 @@ int main(int argc, const char *argv[])
             
             // Настройка времени бездействия из конфига
             double retirement_time_seconds = 60.0; // по умолчанию 1 минута
-            if (config.contains("dogRetirementTime")) {
+            if (config.is_object() && config.as_object().contains("dogRetirementTime")) {
                 retirement_time_seconds = config.at("dogRetirementTime").as_double();
             }
 

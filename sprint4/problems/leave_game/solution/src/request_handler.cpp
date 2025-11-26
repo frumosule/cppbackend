@@ -183,7 +183,15 @@ namespace http_handler
             }
             else
             {
-                return MakeMethodNotAllowedResponse(req, "GET");
+                StringResponse response(http::status::method_not_allowed, req.version());
+                response.set(http::field::content_type, "application/json");
+                response.set(http::field::allow, "GET, HEAD");
+                response.set(http::field::cache_control, "no-cache");
+                response.body() = json::serialize(json::object{
+                    {"code", "invalidMethod"},
+                    {"message", "Invalid method"}});
+                response.prepare_payload();
+                return response;
             }
         }
 
@@ -402,7 +410,7 @@ namespace http_handler
                                     json::object{{"code", "invalidArgument"}, {"message", "Failed to parse action"}}, req);
         }
     }
-    
+
     std::optional<std::string> RequestHandler::ExtractAuthToken(const StringRequest &req)
     {
         auto auth_header = req.find(http::field::authorization);
@@ -894,43 +902,69 @@ namespace http_handler
 
     StringResponse RequestHandler::HandleGetRecords(StringRequest &&req)
     {
+        if (!retired_players_manager_)
+        {
+            return MakeJsonResponse(http::status::internal_server_error,
+                                    json::object{{"code", "internalError"},
+                                                 {"message", "Records service unavailable"}},
+                                    req);
+        }
         try
         {
-            // Парсим параметры запроса
-            auto params = ParseQueryParams(req);
-            int start = std::stoi(params.value("start", "0"));
-            int max_items = std::stoi(params.value("maxItems", "100"));
+            try
+            {
+                // Парсим query parameters
+                std::string query = std::string(req.target());
+                size_t question_pos = query.find('?');
 
-            if (max_items > 100)
+                int start = 0;
+                int max_items = 100;
+
+                if (question_pos != std::string::npos)
+                {
+                    std::string params_str = query.substr(question_pos + 1);
+                    std::istringstream params_stream(params_str);
+                    std::string param;
+
+                    while (std::getline(params_stream, param, '&'))
+                    {
+                        size_t equals_pos = param.find('=');
+                        if (equals_pos != std::string::npos)
+                        {
+                            std::string key = param.substr(0, equals_pos);
+                            std::string value = param.substr(equals_pos + 1);
+
+                            if (key == "start")
+                            {
+                                start = std::stoi(value);
+                                start = std::max(0, start); // Не может быть отрицательным
+                            }
+                            else if (key == "maxItems")
+                            {
+                                max_items = std::stoi(value);
+                                max_items = std::max(1, std::min(100, max_items)); // Ограничиваем 1-100
+                            }
+                        }
+                    }
+                }
+
+                auto records = retired_players_manager_.GetRecords(start, max_items);
+
+                StringResponse response(http::status::ok, req.version());
+                response.set(http::field::content_type, "application/json");
+                response.set(http::field::cache_control, "no-cache");
+                response.body() = json::serialize(records);
+                response.prepare_payload();
+
+                return response;
+            }
+            catch (const std::exception &e)
             {
                 return MakeJsonResponse(http::status::bad_request,
                                         json::object{{"code", "invalidArgument"},
-                                                     {"message", "maxItems cannot exceed 100"}},
+                                                     {"message", "Invalid parameters"}},
                                         req);
             }
-
-            auto records = retired_players_manager_.GetRecords(start, max_items);
-
-            StringResponse response(http::status::ok, req.version());
-            response.set(http::field::content_type, "application/json");
-            response.set(http::field::cache_control, "no-cache");
-            response.body() = json::serialize(records);
-            response.prepare_payload();
-
-            return response;
         }
-        catch (const std::exception &e)
-        {
-            return MakeJsonResponse(http::status::bad_request,
-                                    json::object{{"code", "invalidArgument"},
-                                                 {"message", "Invalid parameters"}},
-                                    req);
-        }
-    }
 
-    void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager)
-    {
-        retired_players_manager_ = manager;
-    }
-
-} // namespace http_handler
+    } // namespace http_handler
