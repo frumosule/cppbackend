@@ -231,18 +231,5 @@ namespace json_loader
             return model::Office(model::Office::Id(id), model::Point{x, y}, model::Offset{offsetX, offsetY});
         }
 
-        boost::json::value json_loader::LoadConfig(const std::string &config_file)
-        {
-            std::ifstream file(config_file);
-            if (!file)
-            {
-                throw std::runtime_error("Failed to open config file: " + config_file);
-            }
-
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-            return boost::json::parse(buffer.str());
-        }
-
     } // namespace detail
 } // namespace json_loader

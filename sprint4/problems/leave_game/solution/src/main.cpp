@@ -17,7 +17,7 @@
 #include "ticker.h"
 #include "application_listener.h"
 #include "serializing_listener.h"
-#include "retired_players_manager.h"  // Добавьте этот include
+#include "retired_players_manager.h" // Добавьте этот include
 
 using namespace std::literals;
 namespace net = boost::asio;
@@ -99,9 +99,9 @@ int main(int argc, const char *argv[])
         // Загружаем конфигурацию и получаем JSON объект
         auto load_result = json_loader::LoadGameWithLootConfig(args.config_file);
         model::Game game = std::move(load_result.game);
-        
-        // Получаем конфигурацию для доступа к dogRetirementTime
-        auto config = json_loader::detail::LoadConfig(args.config_file);
+
+        auto config_content = json_loader::detail::LoadFileContent(args.config_file);
+        auto config = json_loader::detail::ParseJson(config_content);
 
         model::GameSessionManager session_manager(game);
 
@@ -164,14 +164,16 @@ int main(int argc, const char *argv[])
         auto db_url = std::getenv("GAME_DB_URL");
         std::shared_ptr<DatabaseConnectionPool> db_pool;
         std::shared_ptr<RetiredPlayersManager> retired_mgr;
-        
-        if (db_url) {
+
+        if (db_url)
+        {
             db_pool = std::make_shared<DatabaseConnectionPool>(10, db_url);
             retired_mgr = std::make_shared<RetiredPlayersManager>(*db_pool);
-            
+
             // Настройка времени бездействия из конфига
             double retirement_time_seconds = 60.0; // по умолчанию 1 минута
-            if (config.is_object() && config.as_object().contains("dogRetirementTime")) {
+            if (config.is_object() && config.as_object().contains("dogRetirementTime"))
+            {
                 retirement_time_seconds = config.at("dogRetirementTime").as_double();
             }
 
@@ -183,7 +185,9 @@ int main(int argc, const char *argv[])
             base_handler.SetRetiredPlayersManager(retired_mgr);
 
             std::cout << "Retirement timeout: " << retirement_time_seconds << " seconds" << std::endl;
-        } else {
+        }
+        else
+        {
             std::cout << "GAME_DB_URL not set - retirement system disabled" << std::endl;
         }
 
@@ -225,12 +229,13 @@ int main(int argc, const char *argv[])
 
         // Таймер для проверки неактивных игроков (только если БД настроена)
         std::shared_ptr<Ticker> retirement_ticker;
-        if (db_pool) {
+        if (db_pool)
+        {
             retirement_ticker = std::make_shared<Ticker>(ioc, std::chrono::seconds(1),
-                                                          [&session_manager]([[maybe_unused]] std::chrono::milliseconds delta)
-                                                          {
-                                                              session_manager.CheckInactivePlayers();
-                                                          });
+                                                         [&session_manager]([[maybe_unused]] std::chrono::milliseconds delta)
+                                                         {
+                                                             session_manager.CheckInactivePlayers();
+                                                         });
             retirement_ticker->Start();
         }
 
