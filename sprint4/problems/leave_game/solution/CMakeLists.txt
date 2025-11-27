@@ -24,7 +24,27 @@ find_package(Boost 1.84.0 REQUIRED
 
 find_package(Catch2 REQUIRED)
 
-find_package(libpqxx REQUIRED)
+# ИСПРАВЛЕНО: Явное указание путей к PostgreSQL
+set(POSTGRESQL_ROOT "C:/Program Files/PostgreSQL/18")
+set(POSTGRESQL_INCLUDE_DIR "${POSTGRESQL_ROOT}/include")
+set(POSTGRESQL_LIBRARY "${POSTGRESQL_ROOT}/lib/libpq.lib")
+
+# Проверяем существование файлов
+if(EXISTS "${POSTGRESQL_INCLUDE_DIR}/libpq-fe.h" AND EXISTS "${POSTGRESQL_LIBRARY}")
+    message(STATUS "Found PostgreSQL include: ${POSTGRESQL_INCLUDE_DIR}")
+    message(STATUS "Found PostgreSQL library: ${POSTGRESQL_LIBRARY}")
+    
+    # Создаем импортированную цель для PostgreSQL
+    add_library(PostgreSQL::PostgreSQL INTERFACE IMPORTED)
+    set_target_properties(PostgreSQL::PostgreSQL PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${POSTGRESQL_INCLUDE_DIR}"
+        INTERFACE_LINK_LIBRARIES "${POSTGRESQL_LIBRARY}"
+    )
+    
+    set(PostgreSQL_FOUND TRUE)
+else()
+    message(FATAL_ERROR "PostgreSQL not found! Checked at: ${POSTGRESQL_ROOT}")
+endif()
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
@@ -71,10 +91,10 @@ add_executable(game_server
     src/retired_players_manager.h
 )
 
-
 # Указываем include директории
 target_include_directories(game_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${POSTGRESQL_INCLUDE_DIR}  # Добавляем PostgreSQL include
 )
 
 target_link_libraries(game_server PRIVATE
@@ -84,28 +104,17 @@ target_link_libraries(game_server PRIVATE
     Boost::log
     Boost::program_options
     Boost::date_time
-    libpqxx::pqxx
+    PostgreSQL::PostgreSQL
 )
 
 if(WIN32)
-    target_link_libraries(game_server PRIVATE ws2_32 mswsock)
-endif()
-
-# Добавляем флаги компиляции для лучшей отладки
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(game_server PRIVATE BOOST_LOG_DYN_LINK)
-    target_compile_options(game_server PRIVATE -g -O0)
-else()
-    target_compile_options(game_server PRIVATE -O2 -DNDEBUG)
-endif()
-
-# Предупреждения компилятора
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(game_server PRIVATE -Wall -Wextra -Wpedantic)
+    target_link_libraries(game_server PRIVATE 
+        ws2_32 
+        mswsock 
+    )
 endif()
 
 # Простые тесты без внешних зависимостей
-# ИСПРАВЛЕНО: правильное имя файла
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
     add_executable(loot_generator_test
         tests/state-serialization-tests.cpp
@@ -114,6 +123,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
     target_include_directories(loot_generator_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${POSTGRESQL_INCLUDE_DIR}  # Добавляем PostgreSQL include для тестов
     )
     
     target_link_libraries(loot_generator_test PRIVATE
@@ -124,7 +134,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
         Boost::program_options
         Boost::date_time
         Catch2::Catch2WithMain 
-        libpqxx::pqxx
+        PostgreSQL::PostgreSQL
     )
     
     add_custom_target(run_tests
@@ -132,4 +142,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
         DEPENDS loot_generator_test
         COMMENT "Running loot generator tests..."
     )
+
 endif()
+
+
+

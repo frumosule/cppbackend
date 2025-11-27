@@ -6,7 +6,7 @@
 #include <mutex>
 #include <cmath>
 #include <boost/json.hpp>
-#include <chrono> 
+#include <chrono>
 
 namespace model
 {
@@ -307,6 +307,8 @@ namespace model
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
+        CheckInactivePlayers();
+
         for (auto &[map_id, session] : sessions_)
         {
             auto map = game_.FindMap(map_id);
@@ -382,6 +384,13 @@ namespace model
                 if (should_stop)
                 {
                     player->SetSpeed(0.0, 0.0);
+
+                    auto session_it = player_sessions_.find(player_id);
+                    if (session_it != player_sessions_.end() && !session_it->second.inactive_started)
+                    {
+                        session_it->second.inactive_started = true;
+                        session_it->second.inactive_start_time = std::chrono::steady_clock::now();
+                    }
                 }
             }
         }
@@ -1001,6 +1010,9 @@ namespace model
         if (it != player_sessions_.end())
         {
             it->second.last_movement_time = std::chrono::steady_clock::now();
+
+            // Сбрасываем флаг бездействия при любом движении
+            it->second.inactive_started = false;
         }
     }
 
@@ -1016,16 +1028,38 @@ namespace model
             if (!session_data.is_active)
                 continue;
 
-            auto inactive_duration = now - session_data.last_movement_time;
+            auto player = players_by_id_.find(player_id);
+            if (player == players_by_id_.end())
+                continue;
 
-            if (inactive_duration > retirement_timeout_)
+            // Проверяем, остановился ли игрок (скорость = 0)
+            if (player->second->GetSpeedX() == 0.0 && player->second->GetSpeedY() == 0.0)
             {
-                players_to_retire.push_back(player_id);
-                session_data.is_active = false;
+                // Игрок остановился - начинаем отсчет времени бездействия
+                if (!session_data.inactive_started)
+                {
+                    // Первая остановка
+                    session_data.inactive_started = true;
+                    session_data.inactive_start_time = now;
+                }
+                else
+                {
+                    // Продолжаем бездействие - проверяем, не превысило ли время
+                    auto inactive_duration = now - session_data.inactive_start_time;
+                    if (inactive_duration > retirement_timeout_)
+                    {
+                        players_to_retire.push_back(player_id);
+                        session_data.is_active = false;
+                    }
+                }
+            }
+            else
+            {
+                // Игрок двигается - сбрасываем таймер бездействия
+                session_data.inactive_started = false;
             }
         }
 
-        // Удаляем игроков вне цикла
         for (auto player_id : players_to_retire)
         {
             RetirePlayer(player_id);
@@ -1040,32 +1074,29 @@ namespace model
 
         auto player = player_it->second;
 
-        // Рассчитываем время игры
         auto session_it = player_sessions_.find(player_id);
         if (session_it == player_sessions_.end())
             return;
 
-        auto play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+        // Общее время игры = от join_time до текущего момента
+        auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - session_it->second.join_time);
 
-        // Добавляем в таблицу рекордов
         if (retired_players_manager_)
         {
             retired_players_manager_->AddRetiredPlayer(
                 player->GetName(),
                 player->GetScore(),
-                play_time.count());
+                total_play_time.count()); // общее время в миллисекундах
 
             std::cout << "Player " << player->GetName() << " retired after "
-                      << play_time.count() / 1000.0 << " seconds with score "
+                      << total_play_time.count() / 1000.0 << " seconds (inactive timeout), score: "
                       << player->GetScore() << std::endl;
         }
 
-        // Удаляем игрока из игры
         RemovePlayerUnsafe(player_id);
         player_sessions_.erase(player_id);
     }
-
     void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
     {
         // Удаляем из players_by_id_

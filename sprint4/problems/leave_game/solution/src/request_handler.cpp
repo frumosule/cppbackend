@@ -9,8 +9,17 @@ namespace http_handler
 
     namespace json = boost::json;
 
-    RequestHandler::RequestHandler(model::Game &game, model::GameSessionManager &session_manager, const std::string &static_path, std::unordered_map<model::Map::Id, json::array, model::Game::MapIdHasher> map_loot_types)
-        : game_(game), session_manager_(session_manager), static_root_(static_path), auto_tick_mode_(false), map_loot_types_(std::move(map_loot_types))
+    RequestHandler::RequestHandler(model::Game &game,
+                                   model::GameSessionManager &session_manager,
+                                   const std::string &static_path,
+                                   std::unordered_map<model::Map::Id, json::array, model::Game::MapIdHasher> map_loot_types,
+                                   std::shared_ptr<RetiredPlayersManager> retired_players_manager) // добавить этот параметр
+        : game_(game),
+          session_manager_(session_manager),
+          static_root_(static_path),
+          auto_tick_mode_(false),
+          map_loot_types_(std::move(map_loot_types)),
+          retired_players_manager_(std::move(retired_players_manager)) // инициализировать здесь
     {
 
         mime_types_ = {

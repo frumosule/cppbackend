@@ -237,6 +237,7 @@ int main(int argc, const char *argv[])
                                                              session_manager.CheckInactivePlayers();
                                                          });
             retirement_ticker->Start();
+            std::cout << "Retirement ticker started" << std::endl;
         }
 
         if (args.randomize_spawn_points)
