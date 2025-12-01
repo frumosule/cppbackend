@@ -184,25 +184,22 @@ namespace http_handler
             }
         }
 
-        if (target == API_V1_GAME_RECORDS)
+        if (target.starts_with("/api/v1/game/records"))
         {
+            std::cout << ">>> Matched /api/v1/game/records" << std::endl;
             if (req.method() == http::verb::get)
             {
                 return HandleGetRecords(std::move(req));
             }
             else
             {
-                StringResponse response(http::status::method_not_allowed, req.version());
-                response.set(http::field::content_type, "application/json");
-                response.set(http::field::allow, "GET, HEAD");
-                response.set(http::field::cache_control, "no-cache");
-                response.body() = json::serialize(json::object{
-                    {"code", "invalidMethod"},
-                    {"message", "Invalid method"}});
-                response.prepare_payload();
-                return response;
+                return MakeJsonResponse(http::status::method_not_allowed,
+                                        json::object{
+                                            {"code", "invalidMethod"},
+                                            {"message", "Only GET method is allowed"}},
+                                        req);
             }
-        }
+        }   
 
         return MakeJsonResponse(http::status::bad_request,
                                 json::object{{"code", "badRequest"}, {"message", "Bad request"}}, req);
@@ -425,16 +422,32 @@ namespace http_handler
         auto auth_header = req.find(http::field::authorization);
         if (auth_header == req.end())
         {
+            std::cout << "ExtractAuthToken: No Authorization header" << std::endl;
             return std::nullopt;
         }
 
         std::string auth_value = auth_header->value();
+        std::cout << "ExtractAuthToken: header value = " << auth_value << std::endl;
 
-        if (!auth_value.starts_with("Bearer "))
+        // Проверяем формат "Bearer <token>"
+        const std::string bearer_prefix = "Bearer ";
+        if (!auth_value.starts_with(bearer_prefix))
         {
+            std::cout << "ExtractAuthToken: Invalid format, missing 'Bearer '" << std::endl;
             return std::nullopt;
         }
-        return auth_value.substr(7);
+
+        std::string token = auth_value.substr(bearer_prefix.size());
+
+        // Проверяем, что токен не пустой
+        if (token.empty())
+        {
+            std::cout << "ExtractAuthToken: Empty token after 'Bearer '" << std::endl;
+            return std::nullopt;
+        }
+
+        std::cout << "ExtractAuthToken: extracted token = " << token << std::endl;
+        return token;
     }
 
     StringResponse RequestHandler::HandleGameTick(StringRequest &&req)
@@ -577,11 +590,11 @@ namespace http_handler
                                     json::object{{"code", "invalidToken"}, {"message", "Authorization header is required"}}, req);
         }
 
-        auto players = session_manager_.GetPlayersByToken(*auth_token);
-        std::cout << "REQUEST_HANDLER: After GetPlayersByToken - players size: " << players.size() << std::endl;
-        if (players.empty())
+        auto player = session_manager_.FindPlayerByToken(*auth_token);
+        std::cout << "HandleGameState: player found = " << (player ? "YES" : "NO") << std::endl;
+        if (!player)
         {
-            std::cout << "REQUEST_HANDLER: players is EMPTY - returning 401 - line 554" << std::endl;
+            std::cout << "HandleGameState: returning 401 - token not found or player retired" << std::endl;
             return MakeJsonResponse(http::status::unauthorized,
                                     json::object{{"code", "unknownToken"}, {"message", "Player token has not been found"}}, req);
         }
@@ -909,11 +922,18 @@ namespace http_handler
         return game_.GetDefaultDogSpeed();
     }
 
+    // request_handler.cpp - ИСПРАВЛЕННЫЙ метод HandleGetRecords
     StringResponse RequestHandler::HandleGetRecords(StringRequest &&req)
     {
-        if (!retired_players_manager_)
+        std::cout << "\n=== HandleGetRecords called ===" << std::endl;
+        std::cout << "Target: " << std::string(req.target()) << std::endl;
+        std::cout << "Method: " << req.method_string() << std::endl;
+
+        // ВАЖНО: Проверь, что stat_provider_ инициализирован
+        if (!stat_provider_)
         {
-            // Возвращаем 200 OK с пустым массивом вместо 500 ошибки
+            std::cout << "ERROR: stat_provider_ is null!" << std::endl;
+            // Возвращаем 200 OK с пустым массивом (как в тестах ожидается)
             boost::json::array empty_array;
             StringResponse response(http::status::ok, req.version());
             response.set(http::field::content_type, "application/json");
@@ -925,50 +945,94 @@ namespace http_handler
 
         try
         {
-            // Парсим query parameters
-            std::string query = std::string(req.target());
-            size_t question_pos = query.find('?');
+            // Парсим query parameters из URL
+            std::string target = std::string(req.target());
+            std::cout << "HandleGetRecords: target = " << target << std::endl;
 
             int start = 0;
             int max_items = 100;
 
+            // Проверяем есть ли query parameters
+            size_t question_pos = target.find('?');
             if (question_pos != std::string::npos)
             {
-                std::string params_str = query.substr(question_pos + 1);
-                std::istringstream params_stream(params_str);
+                std::string query_str = target.substr(question_pos + 1);
+                std::cout << "Query string: " << query_str << std::endl;
+
+                // Парсим параметры
+                std::unordered_map<std::string, std::string> params;
+                std::stringstream ss(query_str);
                 std::string param;
 
-                while (std::getline(params_stream, param, '&'))
+                while (std::getline(ss, param, '&'))
                 {
-                    size_t equals_pos = param.find('=');
-                    if (equals_pos != std::string::npos)
+                    size_t eq_pos = param.find('=');
+                    if (eq_pos != std::string::npos)
                     {
-                        std::string key = param.substr(0, equals_pos);
-                        std::string value = param.substr(equals_pos + 1);
+                        std::string key = param.substr(0, eq_pos);
+                        std::string value = param.substr(eq_pos + 1);
+                        params[key] = value;
+                    }
+                }
 
-                        if (key == "start")
-                        {
-                            start = std::stoi(value);
-                            start = std::max(0, start);
-                        }
-                        else if (key == "maxItems")
-                        {
-                            max_items = std::stoi(value);
+                if (params.count("start"))
+                {
+                    try
+                    {
+                        start = std::stoi(params["start"]);
+                        if (start < 0)
+                            start = 0;
+                    }
+                    catch (...)
+                    {
+                        start = 0;
+                    }
+                }
 
-                            if (max_items > 100)
-                            {
-                                return MakeJsonResponse(http::status::bad_request,
-                                                        json::object{{"code", "invalidArgument"},
-                                                                     {"message", "maxItems cannot exceed 100"}},
-                                                        req);
-                            }
-                            max_items = std::max(1, std::min(100, max_items));
+                if (params.count("maxItems"))
+                {
+                    try
+                    {
+                        max_items = std::stoi(params["maxItems"]);
+                        if (max_items > 100)
+                        {
+                            std::cout << "ERROR: maxItems > 100" << std::endl;
+                            return MakeJsonResponse(http::status::bad_request,
+                                                    json::object{
+                                                        {"code", "invalidArgument"},
+                                                        {"message", "maxItems cannot exceed 100"}},
+                                                    req);
                         }
+                        if (max_items < 1)
+                            max_items = 1;
+                    }
+                    catch (...)
+                    {
+                        max_items = 100;
                     }
                 }
             }
 
-            auto records = retired_players_manager_->GetRecords(start, max_items);
+            std::cout << "Params: start=" << start << ", max_items=" << max_items << std::endl;
+
+            // Получаем данные из БД
+            auto stats = stat_provider_->GetStats(start, max_items);
+            std::cout << "Got " << stats.size() << " records from DB" << std::endl;
+
+            // Формируем JSON ответ
+            boost::json::array records;
+            for (const auto &stat : stats)
+            {
+                boost::json::object record;
+                record["name"] = stat.name;
+                record["score"] = stat.score;
+                record["playTime"] = stat.playtime; // уже в секундах
+                records.push_back(record);
+
+                std::cout << "Record: name=" << stat.name
+                          << ", score=" << stat.score
+                          << ", playTime=" << stat.playtime << std::endl;
+            }
 
             StringResponse response(http::status::ok, req.version());
             response.set(http::field::content_type, "application/json");
@@ -976,13 +1040,16 @@ namespace http_handler
             response.body() = json::serialize(records);
             response.prepare_payload();
 
+            std::cout << "Returning response with " << records.size() << " records" << std::endl;
             return response;
         }
         catch (const std::exception &e)
         {
+            std::cerr << "HandleGetRecords exception: " << e.what() << std::endl;
             return MakeJsonResponse(http::status::bad_request,
-                                    json::object{{"code", "invalidArgument"},
-                                                 {"message", "Invalid parameters: " + std::string(e.what())}},
+                                    json::object{
+                                        {"code", "invalidArgument"},
+                                        {"message", "Invalid request: " + std::string(e.what())}},
                                     req);
         }
     }

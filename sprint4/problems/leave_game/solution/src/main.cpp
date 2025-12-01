@@ -154,42 +154,76 @@ int main(int argc, const char *argv[])
                 ioc.stop();
             } });
 
+        // ------------------------------------------------------------
+        // ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ (исправленная часть)
+        // ------------------------------------------------------------
+        const char* db_url = std::getenv("GAME_DB_URL");
+        std::shared_ptr<database::ConnectionPool> db_pool;
+        std::shared_ptr<database::StatProvider> stat_provider;
+        std::shared_ptr<RetiredPlayersManager> retired_mgr;
+
+        if (db_url) {
+            std::cout << "GAME_DB_URL found: " << db_url << std::endl;
+            
+            try {
+                // Создаем пул соединений
+                db_pool = std::make_shared<database::ConnectionPool>(
+                    std::max(1u, num_threads),
+                    [db_url]() { 
+                        std::cout << "Creating database connection..." << std::endl;
+                        return std::make_shared<pqxx::connection>(db_url); 
+                    }
+                );
+                
+                // Инициализируем БД (создаем таблицы если их нет)
+                database::InitializeDB(db_pool);
+                std::cout << "Database initialized successfully" << std::endl;
+                
+                // Создаем StatProvider как в образце
+                stat_provider = std::make_shared<database::StatProvider>(db_pool);
+                std::cout << "StatProvider created" << std::endl;
+                
+                // Создаем RetiredPlayersManager
+                retired_mgr = std::make_shared<RetiredPlayersManager>(*db_pool);
+                std::cout << "RetiredPlayersManager created" << std::endl;
+                
+                // Настройка времени бездействия из конфига
+                double retirement_time_seconds = 60.0; // по умолчанию 1 минута
+                if (config.is_object() && config.as_object().contains("dogRetirementTime")) {
+                    retirement_time_seconds = config.at("dogRetirementTime").as_double();
+                    std::cout << "Retirement time from config: " << retirement_time_seconds << " seconds" << std::endl;
+                }
+                
+                auto retirement_timeout = std::chrono::milliseconds(
+                    static_cast<int>(retirement_time_seconds * 1000));
+                
+                session_manager.SetRetirementTimeout(retirement_timeout);
+                session_manager.SetRetiredPlayersManager(retired_mgr);
+                std::cout << "Retirement system configured" << std::endl;
+                
+            } catch (const std::exception& e) {
+                std::cerr << "ERROR initializing database: " << e.what() << std::endl;
+                std::cerr << "Retirement system will be disabled" << std::endl;
+                // Продолжаем без БД
+                stat_provider = nullptr;
+                retired_mgr = nullptr;
+            }
+        } else {
+            std::cout << "GAME_DB_URL not set - retirement system disabled" << std::endl;
+            stat_provider = nullptr;
+            retired_mgr = nullptr;
+        }
+        
+        // Создаем RequestHandler и передаем stat_provider
         http_handler::RequestHandler base_handler{
             game,
             session_manager,
             args.www_root,
-            std::move(load_result.map_loot_types)};
-
-        // Инициализация пула соединений и менеджера рекордов
-        auto db_url = std::getenv("GAME_DB_URL");
-        std::shared_ptr<DatabaseConnectionPool> db_pool;
-        std::shared_ptr<RetiredPlayersManager> retired_mgr;
-
-        if (db_url)
-        {
-            db_pool = std::make_shared<DatabaseConnectionPool>(10, db_url);
-            retired_mgr = std::make_shared<RetiredPlayersManager>(*db_pool);
-
-            // Настройка времени бездействия из конфига
-            double retirement_time_seconds = 60.0; // по умолчанию 1 минута
-            if (config.is_object() && config.as_object().contains("dogRetirementTime"))
-            {
-                retirement_time_seconds = config.at("dogRetirementTime").as_double();
-            }
-
-            auto retirement_timeout = std::chrono::milliseconds(
-                static_cast<int>(retirement_time_seconds * 1000));
-
-            session_manager.SetRetirementTimeout(retirement_timeout);
-            session_manager.SetRetiredPlayersManager(retired_mgr);
-            base_handler.SetRetiredPlayersManager(retired_mgr);
-
-            std::cout << "Retirement timeout: " << retirement_time_seconds << " seconds" << std::endl;
-        }
-        else
-        {
-            std::cout << "GAME_DB_URL not set - retirement system disabled" << std::endl;
-        }
+            std::move(load_result.map_loot_types),
+            stat_provider  // передаем StatProvider (может быть nullptr)
+        };
+        
+        std::cout << "RequestHandler created" << std::endl;
 
         if (!args.state_file.empty())
         {
@@ -227,17 +261,26 @@ int main(int argc, const char *argv[])
             base_handler.SetAutoTickMode(false);
         }
 
-        // Таймер для проверки неактивных игроков (только если БД настроена)
+        // Таймер для проверки неактивных игроков
         std::shared_ptr<Ticker> retirement_ticker;
-        if (db_pool)
-        {
+        if (db_pool && retired_mgr) {
+            std::cout << "Starting retirement ticker..." << std::endl;
             retirement_ticker = std::make_shared<Ticker>(ioc, std::chrono::seconds(1),
                                                          [&session_manager]([[maybe_unused]] std::chrono::milliseconds delta)
                                                          {
-                                                            session_manager.CheckInactivePlayers();
+                                                             try
+                                                             {
+                                                                 session_manager.CheckInactivePlayers();
+                                                             }
+                                                             catch (const std::exception &e)
+                                                             {
+                                                                 std::cerr << "Error in CheckInactivePlayers: " << e.what() << std::endl;
+                                                             }
                                                          });
             retirement_ticker->Start();
             std::cout << "Retirement ticker started" << std::endl;
+        } else {
+            std::cout << "Retirement ticker NOT started (no db pool or retired mgr)" << std::endl;
         }
 
         if (args.randomize_spawn_points)
@@ -301,4 +344,3 @@ int main(int argc, const char *argv[])
         return EXIT_FAILURE;
     }
 }
-//оо

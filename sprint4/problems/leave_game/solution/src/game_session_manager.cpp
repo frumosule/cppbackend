@@ -62,12 +62,20 @@ namespace model
         players_by_token_[auth_token] = player;
         players_by_id_[player->GetId()] = player;
 
+        // ИНИЦИАЛИЗАЦИЯ ДАННЫХ СЕССИИ ДЛЯ AFK СИСТЕМЫ
         auto now = std::chrono::steady_clock::now();
-        player_sessions_[player->GetId()] = {now, now, true};
+        PlayerSessionData session_data;
+        session_data.join_time = now;
+        session_data.last_movement_time = now;
+        session_data.inactive_start_time = now;
+        session_data.is_active = true;
+        session_data.inactive_started = false; // игрок еще не начал бездействовать
+        session_data.total_playtime_ms = 0;
+
+        player_sessions_[player->GetId()] = session_data;
 
         return player;
     }
-
     std::shared_ptr<Player> GameSessionManager::FindPlayerByToken(const std::string &auth_token)
     {
         std::cout << "FIND_PLAYER: Attempting to lock mutex for token: " << auth_token << std::endl;
@@ -308,6 +316,14 @@ namespace model
         std::lock_guard<std::mutex> lock(mutex_);
 
         CheckInactivePlayersUnsafe();
+
+        for (auto &[player_id, session_data] : player_sessions_)
+        {
+            if (session_data.is_active)
+            {
+                session_data.total_playtime_ms += time_delta_ms;
+            }
+        }
 
         for (auto &[map_id, session] : sessions_)
         {
@@ -1012,7 +1028,10 @@ namespace model
             it->second.last_movement_time = std::chrono::steady_clock::now();
 
             // Сбрасываем флаг бездействия при любом движении
-            it->second.inactive_started = false;
+            if (it->second.inactive_started)
+            {
+                it->second.inactive_started = false;
+            }
         }
     }
 
@@ -1027,7 +1046,7 @@ namespace model
         std::lock_guard<std::mutex> lock(mutex_);
         RetirePlayerUnsafe(player_id);
     }
-    
+
     void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
     {
         // Удаляем из players_by_id_
@@ -1112,17 +1131,17 @@ namespace model
             return;
 
         // Общее время игры
+        auto now = std::chrono::steady_clock::now();
         auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - session_it->second.join_time);
-
-        double play_time_seconds = total_play_time.count() / 1000.0;
+            now - session_it->second.join_time);
+        session_it->second.total_playtime_ms = total_play_time.count();
 
         if (retired_players_manager_)
         {
             retired_players_manager_->AddRetiredPlayer(
                 player->GetName(),
                 player->GetScore(),
-                play_time_seconds);
+                session_it->second.total_playtime_ms);
 
             std::cout << "DEBUG: Player " << player->GetName() << " retired after "
                       << play_time_seconds << " seconds, score: "

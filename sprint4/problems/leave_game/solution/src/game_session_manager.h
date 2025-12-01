@@ -47,6 +47,7 @@ namespace model
 
         void CheckInactivePlayers();
         void OnPlayerMovement(Player::Id player_id);
+        void RetirePlayer(Player::Id player_id);
 
     private:
         Game &game_;
@@ -66,7 +67,7 @@ namespace model
             std::chrono::steady_clock::time_point last_movement_time;
             bool is_active = true;
             bool inactive_started = false;
-            std::chrono::steady_clock::time_point inactive_start_time;
+            unsigned total_playtime_ms = 0; 
         };
 
         std::unordered_map<Map::Id, std::shared_ptr<SessionData>> sessions_;
@@ -77,7 +78,7 @@ namespace model
         Player::Id next_player_id_ = 0;
         std::mt19937 generator_{std::random_device{}()};
         bool randomize_spawn_ = false;
-        std::chrono::milliseconds retirement_timeout_{60000};
+        std::chrono::milliseconds retirement_timeout_ = std::chrono::seconds(60); // по умолчанию 1 минута
 
         std::vector<std::shared_ptr<app::ApplicationListener>> listeners_;
         mutable std::mutex listeners_mutex_;
@@ -117,7 +118,6 @@ namespace model
         std::pair<bool, std::pair<double, double>> CalculateMove(double x, double y, double speed_x, double speed_y, int delta,
                                                                  const std::unordered_map<Point, std::vector<const Road *>, model::PointHash> &roads_graph) const;
 
-        void RetirePlayer(Player::Id player_id);
         void RemovePlayerUnsafe(Player::Id player_id);
     };
 
