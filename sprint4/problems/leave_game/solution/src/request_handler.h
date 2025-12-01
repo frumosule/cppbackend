@@ -51,6 +51,7 @@ namespace http_handler
         std::unordered_map<std::string, std::string> mime_types_;
         bool auto_tick_mode_;
         std::unordered_map<model::Map::Id, boost::json::array, model::Game::MapIdHasher> map_loot_types_;
+        std::shared_ptr<database::StatProvider> stat_provider_;
 
         StringResponse HandleApiRequest(StringRequest &&req);
         StringResponse HandleStaticRequest(StringRequest &&req);

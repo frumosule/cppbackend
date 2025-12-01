@@ -1,12 +1,18 @@
-// retired_players_manager.cpp - сделаем как в образце
 #include "retired_players_manager.h"
+#include <iostream>
 
-namespace database {
+namespace database
+{
 
-void InitializeDB(std::shared_ptr<ConnectionPool> pool) {
-    auto conn = pool->GetConnection();
-    pqxx::work work{ *conn };
-    work.exec(R"(
+    void InitializeDB(std::shared_ptr<ConnectionPool> pool)
+    {
+        auto conn = pool->GetConnection();
+        pqxx::work work{*conn};
+        
+        std::cout << "Initializing database..." << std::endl;
+        
+        // Создаем таблицу если ее нет
+        work.exec(R"(
 CREATE TABLE IF NOT EXISTS retired_players (
     id SERIAL PRIMARY KEY,
     name varchar(100) NOT NULL,
@@ -14,80 +20,86 @@ CREATE TABLE IF NOT EXISTS retired_players (
     playtime double precision NOT NULL
 );
 )");
-    work.exec(R"(
-CREATE INDEX IF NOT EXISTS score_idx ON retired_players (score);
-)");
-    work.exec(R"(
-CREATE INDEX IF NOT EXISTS playtime_idx ON retired_players (playtime);
-)");
-    work.exec(R"(
-CREATE INDEX IF NOT EXISTS name_idx ON retired_players (name);
-)");
-    
-    // Подготовленные запросы
-    conn->prepare("add_retired_player", 
-        "INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3)");
-    conn->prepare("get_records", 
-        "SELECT name, score, playtime FROM retired_players "
-        "ORDER BY score DESC, playtime ASC, name ASC "
-        "LIMIT $2 OFFSET $1");
         
-    work.commit();
-}
+        // Создаем индексы для быстрой сортировки
+        work.exec(R"(
+CREATE INDEX IF NOT EXISTS retired_players_score_idx ON retired_players (score DESC);
+)");
+        work.exec(R"(
+CREATE INDEX IF NOT EXISTS retired_players_playtime_idx ON retired_players (playtime ASC);
+)");
+        work.exec(R"(
+CREATE INDEX IF NOT EXISTS retired_players_name_idx ON retired_players (name ASC);
+)");
 
-std::vector<StatInfo> StatProvider::GetStats(int start, int max_items) const {
-    auto conn = pool_->GetConnection();
-    pqxx::work work{ *conn };
-    std::vector<StatInfo> stats;
-    
-    auto result = work.exec_prepared("get_records", start, max_items);
-    
-    for (const auto& row : result) {
-        auto [name, score, playtime] = row.as<std::string, int, double>();
-        stats.push_back({name, score, playtime});
+        // Подготавливаем запросы
+        conn->prepare("add_retired_player",
+                      "INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3)");
+        conn->prepare("get_records",
+                      "SELECT name, score, playtime FROM retired_players "
+                      "ORDER BY score DESC, playtime ASC, name ASC "
+                      "LIMIT $2 OFFSET $1");
+
+        work.commit();
+        std::cout << "Database initialized successfully" << std::endl;
     }
-    
-    return stats;
-}
 
-// Для совместимости со старым кодом
-RetiredPlayersManager::RetiredPlayersManager(ConnectionPool& pool)
-    : pool_(pool) {
-    // Инициализация уже сделана в InitializeDB
-}
+    std::vector<StatInfo> StatProvider::GetStats(int start, int max_items) const
+    {
+        if (!pool_) {
+            std::cerr << "StatProvider::GetStats: pool is null" << std::endl;
+            return {};
+        }
+        
+        try {
+            auto conn = pool_->GetConnection();
+            pqxx::work work{*conn};
+            std::vector<StatInfo> stats;
 
-void RetiredPlayersManager::AddRetiredPlayer(const std::string& name, int score, long play_time_ms) {
-    auto conn = pool_.GetConnection();
-    pqxx::work w(*conn);
-    
-    double playtime_seconds = play_time_ms / 1000.0;
-    w.exec_prepared("add_retired_player", name, score, playtime_seconds);
-    w.commit();
-}
+            auto result = work.exec_prepared("get_records", start, max_items);
+            
+            std::cout << "Got " << result.size() << " records from database" << std::endl;
 
-boost::json::array RetiredPlayersManager::GetRecords(int start, int max_items) {
-    if (max_items > 100) {
-        throw std::invalid_argument("maxItems cannot exceed 100");
+            for (const auto &row : result)
+            {
+                try {
+                    auto [name, score, playtime] = row.as<std::string, int, double>();
+                    stats.push_back({name, score, playtime});
+                } catch (const std::exception& e) {
+                    std::cerr << "Error parsing row: " << e.what() << std::endl;
+                }
+            }
+
+            work.commit();
+            return stats;
+        } catch (const std::exception& e) {
+            std::cerr << "StatProvider::GetStats error: " << e.what() << std::endl;
+            return {};
+        }
     }
-    
-    StatProvider provider(std::make_shared<ConnectionPool>(1, 
-        [this]() { 
-            // Создаем новое соединение
-            return std::make_shared<pqxx::connection>(/* connection string */); 
-        }));
-    
-    auto stats = provider.GetStats(start, max_items);
-    
-    boost::json::array records;
-    for (const auto& stat : stats) {
-        boost::json::object record;
-        record["name"] = stat.name;
-        record["score"] = stat.score;
-        record["playTime"] = stat.playtime;  // уже в секундах как double
-        records.push_back(record);
+
+    void StatProvider::AddRetiredPlayer(const std::string &name, int score, double playtime_seconds)
+    {
+        if (!pool_) {
+            std::cerr << "StatProvider::AddRetiredPlayer: pool is null" << std::endl;
+            return;
+        }
+        
+        try {
+            auto conn = pool_->GetConnection();
+            pqxx::work w(*conn);
+            
+            std::cout << "Adding retired player: " << name 
+                      << ", score: " << score 
+                      << ", playtime: " << playtime_seconds << "s" << std::endl;
+            
+            w.exec_prepared("add_retired_player", name, score, playtime_seconds);
+            w.commit();
+            
+            std::cout << "Retired player added successfully" << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error adding retired player: " << e.what() << std::endl;
+        }
     }
-    
-    return records;
-}
 
 } // namespace database

@@ -1122,33 +1122,55 @@ namespace model
     {
         auto player_it = players_by_id_.find(player_id);
         if (player_it == players_by_id_.end())
+        {
+            std::cout << "RetirePlayerUnsafe: player not found, id=" << player_id << std::endl;
             return;
+        }
 
         auto player = player_it->second;
 
         auto session_it = player_sessions_.find(player_id);
         if (session_it == player_sessions_.end())
+        {
+            std::cout << "RetirePlayerUnsafe: session data not found, id=" << player_id << std::endl;
             return;
+        }
 
-        // Общее время игры
+        // Обновляем общее время игры перед уходом
         auto now = std::chrono::steady_clock::now();
         auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             now - session_it->second.join_time);
         session_it->second.total_playtime_ms = total_play_time.count();
 
-        if (retired_players_manager_)
-        {
-            retired_players_manager_->AddRetiredPlayer(
-                player->GetName(),
-                player->GetScore(),
-                session_it->second.total_playtime_ms);
+        double playtime_seconds = total_play_time.count() / 1000.0;
 
-            std::cout << "DEBUG: Player " << player->GetName() << " retired after "
-                      << play_time_seconds << " seconds, score: "
-                      << player->GetScore() << std::endl;
+        std::cout << "RetirePlayerUnsafe: player=" << player->GetName()
+                  << ", playtime=" << playtime_seconds << "s"
+                  << ", score=" << player->GetScore() << std::endl;
+
+        // Сохраняем рекорд в базу данных через StatProvider
+        if (stat_provider_)
+        {
+            try
+            {
+                stat_provider_->AddRetiredPlayer(
+                    player->GetName(),
+                    player->GetScore(),
+                    playtime_seconds);
+
+                std::cout << "Player " << player->GetName() << " saved to database" << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error saving retired player to database: " << e.what() << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "StatProvider is null, player not saved to database" << std::endl;
         }
 
-        // Удаляем игрока БЕЗ блокировки (уже в заблокированном контексте)
+        // Удаляем игрока из всех структур
         RemovePlayerUnsafe(player_id);
         player_sessions_.erase(player_id);
     }

@@ -199,7 +199,7 @@ namespace http_handler
                                             {"message", "Only GET method is allowed"}},
                                         req);
             }
-        }   
+        }
 
         return MakeJsonResponse(http::status::bad_request,
                                 json::object{{"code", "badRequest"}, {"message", "Bad request"}}, req);
@@ -927,13 +927,12 @@ namespace http_handler
     {
         std::cout << "\n=== HandleGetRecords called ===" << std::endl;
         std::cout << "Target: " << std::string(req.target()) << std::endl;
-        std::cout << "Method: " << req.method_string() << std::endl;
 
-        // ВАЖНО: Проверь, что stat_provider_ инициализирован
+        // Проверь, что stat_provider_ инициализирован
         if (!stat_provider_)
         {
-            std::cout << "ERROR: stat_provider_ is null!" << std::endl;
-            // Возвращаем 200 OK с пустым массивом (как в тестах ожидается)
+            std::cout << "WARNING: stat_provider_ is null" << std::endl;
+            // Возвращаем 200 OK с пустым массивом
             boost::json::array empty_array;
             StringResponse response(http::status::ok, req.version());
             response.set(http::field::content_type, "application/json");
@@ -945,81 +944,80 @@ namespace http_handler
 
         try
         {
-            // Парсим query parameters из URL
+            // Парсим query parameters
             std::string target = std::string(req.target());
-            std::cout << "HandleGetRecords: target = " << target << std::endl;
-
             int start = 0;
             int max_items = 100;
 
-            // Проверяем есть ли query parameters
-            size_t question_pos = target.find('?');
-            if (question_pos != std::string::npos)
+            // Убираем "/api/v1/game/records" чтобы получить query
+            size_t records_pos = target.find("/api/v1/game/records");
+            if (records_pos != std::string::npos)
             {
-                std::string query_str = target.substr(question_pos + 1);
-                std::cout << "Query string: " << query_str << std::endl;
+                std::string query_part = target.substr(records_pos + std::string("/api/v1/game/records").length());
 
-                // Парсим параметры
-                std::unordered_map<std::string, std::string> params;
-                std::stringstream ss(query_str);
-                std::string param;
-
-                while (std::getline(ss, param, '&'))
+                if (query_part.starts_with("?"))
                 {
-                    size_t eq_pos = param.find('=');
-                    if (eq_pos != std::string::npos)
-                    {
-                        std::string key = param.substr(0, eq_pos);
-                        std::string value = param.substr(eq_pos + 1);
-                        params[key] = value;
-                    }
-                }
+                    std::string query_str = query_part.substr(1);
 
-                if (params.count("start"))
-                {
-                    try
-                    {
-                        start = std::stoi(params["start"]);
-                        if (start < 0)
-                            start = 0;
-                    }
-                    catch (...)
-                    {
-                        start = 0;
-                    }
-                }
+                    // Парсим параметры
+                    std::unordered_map<std::string, std::string> params;
+                    std::stringstream ss(query_str);
+                    std::string param;
 
-                if (params.count("maxItems"))
-                {
-                    try
+                    while (std::getline(ss, param, '&'))
                     {
-                        max_items = std::stoi(params["maxItems"]);
-                        if (max_items > 100)
+                        size_t eq_pos = param.find('=');
+                        if (eq_pos != std::string::npos)
                         {
-                            std::cout << "ERROR: maxItems > 100" << std::endl;
-                            return MakeJsonResponse(http::status::bad_request,
-                                                    json::object{
-                                                        {"code", "invalidArgument"},
-                                                        {"message", "maxItems cannot exceed 100"}},
-                                                    req);
+                            std::string key = param.substr(0, eq_pos);
+                            std::string value = param.substr(eq_pos + 1);
+                            params[key] = value;
                         }
-                        if (max_items < 1)
-                            max_items = 1;
                     }
-                    catch (...)
+
+                    if (params.count("start"))
                     {
-                        max_items = 100;
+                        try
+                        {
+                            start = std::stoi(params["start"]);
+                            if (start < 0)
+                                start = 0;
+                        }
+                        catch (...)
+                        {
+                            start = 0;
+                        }
+                    }
+
+                    if (params.count("maxItems"))
+                    {
+                        try
+                        {
+                            max_items = std::stoi(params["maxItems"]);
+                            if (max_items > 100)
+                            {
+                                return MakeJsonResponse(http::status::bad_request,
+                                                        json::object{
+                                                            {"code", "invalidArgument"},
+                                                            {"message", "maxItems cannot exceed 100"}},
+                                                        req);
+                            }
+                            if (max_items < 1)
+                                max_items = 1;
+                        }
+                        catch (...)
+                        {
+                            max_items = 100;
+                        }
                     }
                 }
             }
 
-            std::cout << "Params: start=" << start << ", max_items=" << max_items << std::endl;
+            std::cout << "Getting records: start=" << start << ", max_items=" << max_items << std::endl;
 
-            // Получаем данные из БД
+            // Используем StatProvider для получения данных
             auto stats = stat_provider_->GetStats(start, max_items);
-            std::cout << "Got " << stats.size() << " records from DB" << std::endl;
 
-            // Формируем JSON ответ
             boost::json::array records;
             for (const auto &stat : stats)
             {
@@ -1028,10 +1026,6 @@ namespace http_handler
                 record["score"] = stat.score;
                 record["playTime"] = stat.playtime; // уже в секундах
                 records.push_back(record);
-
-                std::cout << "Record: name=" << stat.name
-                          << ", score=" << stat.score
-                          << ", playTime=" << stat.playtime << std::endl;
             }
 
             StringResponse response(http::status::ok, req.version());
@@ -1040,18 +1034,17 @@ namespace http_handler
             response.body() = json::serialize(records);
             response.prepare_payload();
 
-            std::cout << "Returning response with " << records.size() << " records" << std::endl;
+            std::cout << "Returning " << records.size() << " records" << std::endl;
             return response;
         }
         catch (const std::exception &e)
         {
-            std::cerr << "HandleGetRecords exception: " << e.what() << std::endl;
+            std::cerr << "HandleGetRecords error: " << e.what() << std::endl;
             return MakeJsonResponse(http::status::bad_request,
                                     json::object{
                                         {"code", "invalidArgument"},
-                                        {"message", "Invalid request: " + std::string(e.what())}},
+                                        {"message", "Invalid request"}},
                                     req);
         }
     }
-
 } // namespace http_handler

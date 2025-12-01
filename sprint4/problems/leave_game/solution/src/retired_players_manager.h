@@ -1,4 +1,3 @@
-// retired_players_manager.h - сделаем как в образце
 #pragma once
 
 #include <pqxx/pqxx>
@@ -97,7 +96,11 @@ namespace database
         {
         }
 
-        std::vector<StatInfo> GetStats(int start_id, int max_items) const;
+        // Получить статистику
+        std::vector<StatInfo> GetStats(int start, int max_items) const;
+        
+        // Добавить игрока на покой
+        void AddRetiredPlayer(const std::string &name, int score, double playtime_seconds);
 
     private:
         std::shared_ptr<ConnectionPool> pool_;

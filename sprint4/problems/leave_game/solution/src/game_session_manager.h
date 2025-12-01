@@ -41,13 +41,17 @@ namespace model
         void Serialize(std::ostream &out) const;
         void Deserialize(std::istream &in);
 
-        void SetRetirementTimeout(std::chrono::milliseconds timeout) { retirement_timeout_ = timeout; }
-
-        void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) { retired_players_manager_ = manager; }
-
         void CheckInactivePlayers();
-        void OnPlayerMovement(Player::Id player_id);
         void RetirePlayer(Player::Id player_id);
+        void SetRetirementTimeout(std::chrono::milliseconds timeout)
+        {
+            retirement_timeout_ = timeout;
+        }
+
+        void SetStatProvider(std::shared_ptr<database::StatProvider> provider)
+        {
+            stat_provider_ = provider;
+        }
 
     private:
         Game &game_;
@@ -61,13 +65,13 @@ namespace model
             SessionData() = default;
         };
 
-        struct PlayerSessionData
-        {
+        struct PlayerSessionData {
             std::chrono::steady_clock::time_point join_time;
             std::chrono::steady_clock::time_point last_movement_time;
+            std::chrono::steady_clock::time_point inactive_start_time;
             bool is_active = true;
             bool inactive_started = false;
-            unsigned total_playtime_ms = 0; 
+            unsigned total_playtime_ms = 0;
         };
 
         std::unordered_map<Map::Id, std::shared_ptr<SessionData>> sessions_;
@@ -79,6 +83,7 @@ namespace model
         std::mt19937 generator_{std::random_device{}()};
         bool randomize_spawn_ = false;
         std::chrono::milliseconds retirement_timeout_ = std::chrono::seconds(60); // по умолчанию 1 минута
+        std::shared_ptr<database::StatProvider> stat_provider_;
 
         std::vector<std::shared_ptr<app::ApplicationListener>> listeners_;
         mutable std::mutex listeners_mutex_;
