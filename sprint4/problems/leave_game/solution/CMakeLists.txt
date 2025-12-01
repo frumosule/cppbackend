@@ -24,12 +24,7 @@ find_package(Boost 1.84.0 REQUIRED
 
 find_package(Catch2 REQUIRED)
 
-find_package(libpq REQUIRED)    
-find_package(libpqxx REQUIRED) 
-
-if(libpqxx_FOUND)
-    message(STATUS "Found libpqxx: ${libpqxx_VERSION}")
-endif()
+find_package(libpqxx REQUIRED)
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
@@ -76,6 +71,7 @@ add_executable(game_server
     src/retired_players_manager.h
 )
 
+
 # Указываем include директории
 target_include_directories(game_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -88,17 +84,28 @@ target_link_libraries(game_server PRIVATE
     Boost::log
     Boost::program_options
     Boost::date_time
-    libpqxx::pqxx  
+    libpqxx::pqxx
 )
 
 if(WIN32)
-    target_link_libraries(game_server PRIVATE 
-        ws2_32 
-        mswsock 
-    )
+    target_link_libraries(game_server PRIVATE ws2_32 mswsock)
+endif()
+
+# Добавляем флаги компиляции для лучшей отладки
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(game_server PRIVATE BOOST_LOG_DYN_LINK)
+    target_compile_options(game_server PRIVATE -g -O0)
+else()
+    target_compile_options(game_server PRIVATE -O2 -DNDEBUG)
+endif()
+
+# Предупреждения компилятора
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(game_server PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 # Простые тесты без внешних зависимостей
+# ИСПРАВЛЕНО: правильное имя файла
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
     add_executable(loot_generator_test
         tests/state-serialization-tests.cpp
@@ -125,8 +132,4 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
         DEPENDS loot_generator_test
         COMMENT "Running loot generator tests..."
     )
-
 endif()
-
-
-
