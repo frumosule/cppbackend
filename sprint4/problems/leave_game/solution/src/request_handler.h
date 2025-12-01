@@ -30,7 +30,7 @@ namespace http_handler
             model::Game &game,
             model::GameSessionManager &session_manager,
             const std::string &static_path,
-            MapLootTypes map_loot_types = {});
+            MapLootTypes map_loot_types = {} std::shared_ptr<RetiredPlayersManager> retired_players_manager = nullptr);
         StringResponse HandleRequest(StringRequest &&req);
 
         void operator()(StringRequest &&req, auto &&send)
@@ -58,8 +58,8 @@ namespace http_handler
         StringResponse HandleGetPlayers(StringRequest &&req);
         StringResponse HandlePlayerAction(StringRequest &&req);
         StringResponse HandleGameState(StringRequest &&req);
-        StringResponse HandleGameTick(StringRequest &&req);       
-        StringResponse HandleGetRecords(StringRequest&& req);
+        StringResponse HandleGameTick(StringRequest &&req);
+        StringResponse HandleGetRecords(StringRequest &&req);
 
         static constexpr std::string_view API_V1_MAPS = "/api/v1/maps";
         static constexpr std::string_view API_V1_MAPS_PREFIX = "/api/v1/maps/";
