@@ -24,12 +24,11 @@ find_package(Boost 1.84.0 REQUIRED
 
 find_package(Catch2 REQUIRED)
 
-find_package(PostgreSQL REQUIRED)
+find_package(libpq REQUIRED)    
+find_package(libpqxx REQUIRED) 
 
-if(PostgreSQL_FOUND)
-    message(STATUS "PostgreSQL version: ${PostgreSQL_VERSION}")
-    message(STATUS "PostgreSQL includes: ${PostgreSQL_INCLUDE_DIRS}")
-    message(STATUS "PostgreSQL libraries: ${PostgreSQL_LIBRARIES}")
+if(libpqxx_FOUND)
+    message(STATUS "Found libpqxx: ${libpqxx_VERSION}")
 endif()
 
 if(Boost_FOUND)
@@ -80,7 +79,6 @@ add_executable(game_server
 # Указываем include директории
 target_include_directories(game_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${POSTGRESQL_INCLUDE_DIRS}  # Добавляем PostgreSQL include
 )
 
 target_link_libraries(game_server PRIVATE
@@ -90,7 +88,7 @@ target_link_libraries(game_server PRIVATE
     Boost::log
     Boost::program_options
     Boost::date_time
-    ${PostgreSQL_LIBRARIES}
+    libpqxx::pqxx  
 )
 
 if(WIN32)
@@ -109,7 +107,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
     target_include_directories(loot_generator_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
-        ${POSTGRESQL_INCLUDE_DIRS}  # Добавляем PostgreSQL include для тестов
     )
     
     target_link_libraries(loot_generator_test PRIVATE
@@ -120,7 +117,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/state-serialization-tests.cpp)
         Boost::program_options
         Boost::date_time
         Catch2::Catch2WithMain 
-        ${PostgreSQL_LIBRARIES}
+        libpqxx::pqxx
     )
     
     add_custom_target(run_tests

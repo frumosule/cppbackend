@@ -1,7 +1,8 @@
 [requires]
 boost/1.84.0
 catch2/3.5.4
-libpqxx/7.9.0 
+libpq/15.4      
+libpqxx/7.9.0
 
 [generators]
 CMakeDeps
