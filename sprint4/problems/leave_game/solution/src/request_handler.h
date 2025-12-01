@@ -30,7 +30,8 @@ namespace http_handler
             model::Game &game,
             model::GameSessionManager &session_manager,
             const std::string &static_path,
-            MapLootTypes map_loot_types = {} std::shared_ptr<RetiredPlayersManager> retired_players_manager = nullptr);
+            MapLootTypes map_loot_types = {},
+            std::shared_ptr<RetiredPlayersManager> retired_players_manager = nullptr);
         StringResponse HandleRequest(StringRequest &&req);
 
         void operator()(StringRequest &&req, auto &&send)
