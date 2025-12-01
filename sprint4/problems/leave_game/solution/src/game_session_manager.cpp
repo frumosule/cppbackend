@@ -307,7 +307,7 @@ namespace model
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        CheckInactivePlayers();
+        CheckInactivePlayersUnsafe();
 
         for (auto &[map_id, session] : sessions_)
         {
@@ -1019,6 +1019,39 @@ namespace model
     void GameSessionManager::CheckInactivePlayers()
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        CheckInactivePlayersUnsafe();
+    }
+
+    void GameSessionManager::RetirePlayer(Player::Id player_id)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        RetirePlayerUnsafe(player_id);
+    }
+    
+    void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
+    {
+        // Удаляем из players_by_id_
+        auto player_it = players_by_id_.find(player_id);
+        if (player_it != players_by_id_.end())
+        {
+            // Удаляем из players_by_token_
+            auto token = player_it->second->GetAuthToken();
+            players_by_token_.erase(token);
+
+            // Удаляем из сессии
+            auto map_id = player_it->second->GetMapId();
+            auto session = FindSessionUnsafe(map_id);
+            if (session)
+            {
+                session->players.erase(player_id);
+            }
+
+            players_by_id_.erase(player_it);
+        }
+    }
+
+    void GameSessionManager::CheckInactivePlayersUnsafe()
+    {
         auto now = std::chrono::steady_clock::now();
 
         std::vector<Player::Id> players_to_retire;
@@ -1062,11 +1095,11 @@ namespace model
 
         for (auto player_id : players_to_retire)
         {
-            RetirePlayer(player_id);
+            RetirePlayerUnsafe(player_id);
         }
     }
 
-    void GameSessionManager::RetirePlayer(Player::Id player_id)
+    void GameSessionManager::RetirePlayerUnsafe(Player::Id player_id)
     {
         auto player_it = players_by_id_.find(player_id);
         if (player_it == players_by_id_.end())
@@ -1078,44 +1111,26 @@ namespace model
         if (session_it == player_sessions_.end())
             return;
 
-        // Общее время игры = от join_time до текущего момента
+        // Общее время игры
         auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - session_it->second.join_time);
+
+        double play_time_seconds = total_play_time.count() / 1000.0;
 
         if (retired_players_manager_)
         {
             retired_players_manager_->AddRetiredPlayer(
                 player->GetName(),
                 player->GetScore(),
-                total_play_time.count()); // общее время в миллисекундах
+                play_time_seconds);
 
-            std::cout << "Player " << player->GetName() << " retired after "
-                      << total_play_time.count() / 1000.0 << " seconds (inactive timeout), score: "
+            std::cout << "DEBUG: Player " << player->GetName() << " retired after "
+                      << play_time_seconds << " seconds, score: "
                       << player->GetScore() << std::endl;
         }
 
+        // Удаляем игрока БЕЗ блокировки (уже в заблокированном контексте)
         RemovePlayerUnsafe(player_id);
         player_sessions_.erase(player_id);
-    }
-    void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
-    {
-        // Удаляем из players_by_id_
-        auto player_it = players_by_id_.find(player_id);
-        if (player_it != players_by_id_.end())
-        {
-            // Удаляем из players_by_token_
-            auto token = player_it->second->GetAuthToken();
-            players_by_token_.erase(token);
-
-            // Удаляем из сессии
-            auto map_id = player_it->second->GetMapId();
-            auto session = FindSessionUnsafe(map_id);
-            if (session)
-            {
-                session->players.erase(player_id);
-            }
-
-            players_by_id_.erase(player_it);
-        }
     }
 } // namespace model

@@ -170,6 +170,13 @@ int main(int argc, const char *argv[])
             db_pool = std::make_shared<DatabaseConnectionPool>(10, db_url);
             retired_mgr = std::make_shared<RetiredPlayersManager>(*db_pool);
 
+            if (db_pool) {
+                try {
+                    auto test_conn = db_pool->GetConnection();
+                    db_pool->ReturnConnection(std::move(test_conn));
+                } catch (const std::exception& ex) {}
+            }
+
             // Настройка времени бездействия из конфига
             double retirement_time_seconds = 60.0; // по умолчанию 1 минута
             if (config.is_object() && config.as_object().contains("dogRetirementTime"))
@@ -234,7 +241,7 @@ int main(int argc, const char *argv[])
             retirement_ticker = std::make_shared<Ticker>(ioc, std::chrono::seconds(1),
                                                          [&session_manager]([[maybe_unused]] std::chrono::milliseconds delta)
                                                          {
-                                                             session_manager.CheckInactivePlayers();
+                                                            session_manager.CheckInactivePlayers();
                                                          });
             retirement_ticker->Start();
             std::cout << "Retirement ticker started" << std::endl;

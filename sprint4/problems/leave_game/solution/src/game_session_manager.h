@@ -97,6 +97,8 @@ namespace model
         std::shared_ptr<SessionData> FindSessionUnsafe(const Map::Id &map_id);
         std::shared_ptr<SessionData> CreateSessionUnsafe(const Map::Id &map_id);
         std::shared_ptr<Player> FindPlayerByTokenUnsafe(const std::string &auth_token);
+        void CheckInactivePlayersUnsafe();
+        void RetirePlayerUnsafe(Player::Id player_id);
 
         void GenerateLootForSession(SessionData &session, const Map::Id &map_id, int time_delta_ms);
         size_t GetBagCapacityForMap(const Map::Id &map_id) const;
