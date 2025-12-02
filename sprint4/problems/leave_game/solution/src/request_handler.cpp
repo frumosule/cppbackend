@@ -591,9 +591,9 @@ namespace http_handler
                                     json::object{{"code", "invalidToken"}, {"message", "Authorization header is required"}}, req);
         }
 
-        auto player = session_manager_.FindPlayerByToken(*auth_token);
+        auto players = session_manager_.GetPlayersByToken(*auth_token);
         std::cout << "HandleGameState: player found = " << (player ? "YES" : "NO") << std::endl;
-        if (!player)
+        if (players.empty())
         {
             std::cout << "HandleGameState: returning 401 - token not found or player retired" << std::endl;
             return MakeJsonResponse(http::status::unauthorized,
