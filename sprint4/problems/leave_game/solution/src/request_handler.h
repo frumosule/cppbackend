@@ -2,7 +2,6 @@
 
 #include "model.h"
 #include "game_session_manager.h"
-#include "retired_players_manager.h"
 #include <string>
 #include <filesystem>
 #include <unordered_map>
@@ -10,6 +9,11 @@
 
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
+
+// Форвардное объявление
+namespace database {
+    class StatProvider;
+}
 
 namespace http_handler
 {
@@ -26,12 +30,14 @@ namespace http_handler
     {
     public:
         using MapLootTypes = std::unordered_map<model::Map::Id, boost::json::array, model::Game::MapIdHasher>;
+        
         RequestHandler(
             model::Game &game,
             model::GameSessionManager &session_manager,
             const std::string &static_path,
             MapLootTypes map_loot_types = {},
-            std::shared_ptr<RetiredPlayersManager> retired_players_manager = nullptr);
+            std::shared_ptr<database::StatProvider> stat_provider = nullptr);
+            
         StringResponse HandleRequest(StringRequest &&req);
 
         void operator()(StringRequest &&req, auto &&send)
@@ -41,12 +47,10 @@ namespace http_handler
 
         void SetAutoTickMode(bool auto_tick) { auto_tick_mode_ = auto_tick; }
         bool IsAutoTickMode() const { return auto_tick_mode_; }
-        void SetRetiredPlayersManager(std::shared_ptr<RetiredPlayersManager> manager) { retired_players_manager_ = manager; }
 
     private:
         model::Game &game_;
         model::GameSessionManager &session_manager_;
-        std::shared_ptr<RetiredPlayersManager> retired_players_manager_;
         std::string static_root_;
         std::unordered_map<std::string, std::string> mime_types_;
         bool auto_tick_mode_;

@@ -95,8 +95,6 @@ namespace model
         std::unique_ptr<loot_gen::LootGenerator> loot_generator_;
         std::unordered_map<Map::Id, std::unordered_map<int, int>, Game::MapIdHasher> map_loot_values_;
 
-        std::shared_ptr<RetiredPlayersManager> retired_players_manager_;
-
         std::string GenerateAuthToken();
         std::pair<double, double> GetRandomPositionOnRoad(const Map::Id &map_id);
 
@@ -124,6 +122,7 @@ namespace model
                                                                  const std::unordered_map<Point, std::vector<const Road *>, model::PointHash> &roads_graph) const;
 
         void RemovePlayerUnsafe(Player::Id player_id);
+        void OnPlayerMovement(Player::Id player_id);
     };
 
 } // namespace model
