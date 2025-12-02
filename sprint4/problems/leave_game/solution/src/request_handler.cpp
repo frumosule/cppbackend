@@ -592,7 +592,7 @@ namespace http_handler
         }
 
         auto players = session_manager_.GetPlayersByToken(*auth_token);
-        std::cout << "HandleGameState: player found = " << (player ? "YES" : "NO") << std::endl;
+        //std::cout << "HandleGameState: player found = " << (player ? "YES" : "NO") << std::endl;
         if (players.empty())
         {
             std::cout << "HandleGameState: returning 401 - token not found or player retired" << std::endl;
