@@ -33,7 +33,7 @@ namespace model
     public:
         using Id = size_t;
 
-        Player() = default; 
+        Player() = default;
         Player(Id id, std::string name, std::string auth_token, Map::Id map_id,
                double start_x, double start_y, size_t bag_capacity = 3);
 
@@ -69,6 +69,27 @@ namespace model
         void AddScore(int points);
         void SetScore(int score);
 
+        void SetAFK()
+        {
+            if (!is_afk_)
+            {
+                is_afk_ = true;
+                afk_start_time_ = std::chrono::steady_clock::now();
+            }
+        }
+
+        void ResetAFK()
+        {
+            is_afk_ = false;
+        }
+
+        bool IsAFK() const { return is_afk_; }
+
+        std::chrono::steady_clock::time_point GetAFKStartTime() const
+        {
+            return afk_start_time_;
+        }
+
     private:
         Id id_;
         std::string name_;
@@ -82,6 +103,8 @@ namespace model
         std::vector<BagItem> bag_;
         size_t bag_capacity_;
         int score_ = 0;
+        bool is_afk_ = false;
+        std::chrono::steady_clock::time_point afk_start_time_;
     };
 
     class GameSession
@@ -105,4 +128,3 @@ namespace model
     };
 
 } // namespace model
-

@@ -117,28 +117,32 @@ namespace model
         {
             player->SetSpeed(-dog_speed, 0.0);
             player->SetDirection(Direction::WEST);
+            player->ResetAFK(); // Сбросить AFK при движении
         }
         else if (move == "R")
         {
             player->SetSpeed(dog_speed, 0.0);
             player->SetDirection(Direction::EAST);
+            player->ResetAFK();
         }
         else if (move == "U")
         {
             player->SetSpeed(0.0, -dog_speed);
             player->SetDirection(Direction::NORTH);
+            player->ResetAFK();
         }
         else if (move == "D")
         {
             player->SetSpeed(0.0, dog_speed);
             player->SetDirection(Direction::SOUTH);
+            player->ResetAFK();
         }
         else if (move == "")
         {
             player->SetSpeed(0.0, 0.0);
+            player->SetAFK(); // Установить AFK при остановке
         }
 
-        OnPlayerMovement(player->GetId());
         return true;
     }
 
@@ -314,6 +318,24 @@ namespace model
     void GameSessionManager::UpdateGameState(int time_delta_ms)
     {
         std::lock_guard<std::mutex> lock(mutex_);
+
+        for (auto &[player_id, player] : players_by_id_)
+        {
+            if (player->GetSpeedX() == 0.0 && player->GetSpeedY() == 0.0)
+            {
+                if (!player->IsAFK())
+                {
+                    player->SetAFK();
+                }
+            }
+            else
+            {
+                if (player->IsAFK())
+                {
+                    player->ResetAFK();
+                }
+            }
+        }
 
         CheckInactivePlayersUnsafe();
 
@@ -1072,43 +1094,22 @@ namespace model
     void GameSessionManager::CheckInactivePlayersUnsafe()
     {
         auto now = std::chrono::steady_clock::now();
-
         std::vector<Player::Id> players_to_retire;
 
-        for (auto &[player_id, session_data] : player_sessions_)
+        for (auto &[player_id, player] : players_by_id_)
         {
-            if (!session_data.is_active)
+            auto session_it = player_sessions_.find(player_id);
+            if (session_it == player_sessions_.end())
                 continue;
 
-            auto player = players_by_id_.find(player_id);
-            if (player == players_by_id_.end())
-                continue;
-
-            // Проверяем, остановился ли игрок (скорость = 0)
-            if (player->second->GetSpeedX() == 0.0 && player->second->GetSpeedY() == 0.0)
+            if (player->IsAFK())
             {
-                // Игрок остановился - начинаем отсчет времени бездействия
-                if (!session_data.inactive_started)
+                // Игрок в AFK - проверяем время
+                auto afk_duration = now - player->GetAFKStartTime();
+                if (afk_duration > retirement_timeout_)
                 {
-                    // Первая остановка
-                    session_data.inactive_started = true;
-                    session_data.inactive_start_time = now;
+                    players_to_retire.push_back(player_id);
                 }
-                else
-                {
-                    // Продолжаем бездействие - проверяем, не превысило ли время
-                    auto inactive_duration = now - session_data.inactive_start_time;
-                    if (inactive_duration > retirement_timeout_)
-                    {
-                        players_to_retire.push_back(player_id);
-                        session_data.is_active = false;
-                    }
-                }
-            }
-            else
-            {
-                // Игрок двигается - сбрасываем таймер бездействия
-                session_data.inactive_started = false;
             }
         }
 
