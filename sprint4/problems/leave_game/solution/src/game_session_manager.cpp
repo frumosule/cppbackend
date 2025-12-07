@@ -332,6 +332,13 @@ namespace model
     void GameSessionManager::UpdateGameState(int time_delta_ms)
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        last_tick_delta_ms_ = time_delta_ms;
+
+        static int tick_counter = 0;
+        tick_counter++;
+
+        std::cout << "=== UpdateGameState #" << tick_counter
+                  << ", delta=" << time_delta_ms << "ms ===" << std::endl;
 
         CheckInactivePlayersUnsafe();
 
@@ -351,7 +358,7 @@ namespace model
                     player->ResetAFK();
                 }
             }
-        } 
+        }
 
         for (auto &[player_id, session_data] : player_sessions_)
         {
@@ -446,6 +453,7 @@ namespace model
                 }
             }
         }
+        CheckInactivePlayersUnsafe();
     }
 
     std::unordered_map<Point, std::vector<const Road *>, model::PointHash>
@@ -1085,13 +1093,17 @@ namespace model
 
     void GameSessionManager::RemovePlayerUnsafe(Player::Id player_id)
     {
-        // Удаляем из players_by_id_
+        std::cout << "RemovePlayerUnsafe: removing player id=" << player_id << std::endl;
+
         auto player_it = players_by_id_.find(player_id);
         if (player_it != players_by_id_.end())
         {
+            std::cout << "RemovePlayerUnsafe: found player " << player_it->second->GetName() << std::endl;
+
             // Удаляем из players_by_token_
             auto token = player_it->second->GetAuthToken();
             players_by_token_.erase(token);
+            std::cout << "RemovePlayerUnsafe: removed from players_by_token_, token=" << token << std::endl;
 
             // Удаляем из сессии
             auto map_id = player_it->second->GetMapId();
@@ -1099,9 +1111,19 @@ namespace model
             if (session)
             {
                 session->players.erase(player_id);
+                std::cout << "RemovePlayerUnsafe: removed from session" << std::endl;
+            }
+            else
+            {
+                std::cout << "RemovePlayerUnsafe: session not found" << std::endl;
             }
 
             players_by_id_.erase(player_it);
+            std::cout << "RemovePlayerUnsafe: removed from players_by_id_" << std::endl;
+        }
+        else
+        {
+            std::cout << "RemovePlayerUnsafe: player not found in players_by_id_" << std::endl;
         }
     }
 
@@ -1109,6 +1131,12 @@ namespace model
     {
         auto now = std::chrono::steady_clock::now();
         std::vector<Player::Id> players_to_retire;
+
+        // std::cout << "=== CheckInactivePlayersUnsafe called at: "
+        //         << std::chrono::duration_cast<std::chrono::milliseconds>(
+        //              now.time_since_epoch())
+        //            .count()
+        //   << "ms ===" << std::endl;
 
         for (auto &[player_id, session_data] : player_sessions_)
         {
@@ -1119,6 +1147,10 @@ namespace model
             if (player == players_by_id_.end())
                 continue;
 
+            std::cout << "Player " << player_id << " (" << player->second->GetName() << "): ";
+            std::cout << "speed=(" << player->second->GetSpeedX() << "," << player->second->GetSpeedY() << "), ";
+            std::cout << "inactive_started=" << session_data.inactive_started;
+
             // Если игрок AFK (скорость = 0)
             if (player->second->GetSpeedX() == 0.0 && player->second->GetSpeedY() == 0.0)
             {
@@ -1127,15 +1159,38 @@ namespace model
                     // Начинаем отсчет AFK
                     session_data.inactive_started = true;
                     session_data.inactive_start_time = now;
+                    session_data.inactive_accumulated_ms = 0;
                 }
                 else
                 {
                     // Проверяем сколько времени прошло
-                    auto inactive_duration = now - session_data.inactive_start_time;
-                    if (inactive_duration > retirement_timeout_)
+                    if (manual_tick_mode_) // НОВОЕ: флаг ручного режима
                     {
-                        players_to_retire.push_back(player_id);
-                        session_data.is_active = false;
+                        // Используем накопленное время вместо реального
+                        session_data.inactive_accumulated_ms += last_tick_delta_ms_; // НОВОЕ
+                        auto inactive_duration = std::chrono::milliseconds(session_data.inactive_accumulated_ms);
+
+                        std::cout << ", accumulated_inactive=" << session_data.inactive_accumulated_ms << "ms";
+                        if (inactive_duration > retirement_timeout_)
+                        {
+                            std::cout << " - WILL RETIRE!";
+                            players_to_retire.push_back(player_id);
+                            session_data.is_active = false;
+                        }
+                    }
+                    else
+                    {
+                        // Режим авто-тика: используем реальное время
+                        auto inactive_duration = now - session_data.inactive_start_time;
+                        auto inactive_ms = std::chrono::duration_cast<std::chrono::milliseconds>(inactive_duration).count();
+
+                        std::cout << ", real_inactive=" << inactive_ms << "ms";
+                        if (inactive_duration > retirement_timeout_)
+                        {
+                            std::cout << " - WILL RETIRE!";
+                            players_to_retire.push_back(player_id);
+                            session_data.is_active = false;
+                        }
                     }
                 }
             }
@@ -1143,6 +1198,7 @@ namespace model
             {
                 // Игрок двигается - сбрасываем AFK
                 session_data.inactive_started = false;
+                session_data.inactive_accumulated_ms = 0;
             }
         }
 
@@ -1169,14 +1225,22 @@ namespace model
             std::cout << "RetirePlayerUnsafe: session data not found, id=" << player_id << std::endl;
             return;
         }
+        double playtime_seconds;
 
-        // Обновляем общее время игры перед уходом
-        auto now = std::chrono::steady_clock::now();
-        auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now - session_it->second.join_time);
-        session_it->second.total_playtime_ms = total_play_time.count();
+        if (!manual_tick_mode_)
+        {
+            // Обновляем общее время игры перед уходом
+            auto now = std::chrono::steady_clock::now();
+            auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now - session_it->second.join_time);
+            session_it->second.total_playtime_ms = total_play_time.count();
 
-        double playtime_seconds = total_play_time.count() / 1000.0;
+            playtime_seconds = total_play_time.count() / 1000.0;
+        }
+        else
+        {
+            playtime_seconds = session_it->second.total_playtime_ms / 1000.0;
+        }
 
         std::cout << "RetirePlayerUnsafe: player=" << player->GetName()
                   << ", playtime=" << playtime_seconds << "s"
@@ -1204,8 +1268,16 @@ namespace model
             std::cout << "StatProvider is null, player not saved to database" << std::endl;
         }
 
+        std::cout << "BEFORE RemovePlayerUnsafe:" << std::endl;
+        std::cout << "  players_by_id_ size: " << players_by_id_.size() << std::endl;
+        std::cout << "  players_by_token_ size: " << players_by_token_.size() << std::endl;
+
         // Удаляем игрока из всех структур
         RemovePlayerUnsafe(player_id);
         player_sessions_.erase(player_id);
+
+        std::cout << "AFTER RemovePlayerUnsafe:" << std::endl;
+        std::cout << "  players_by_id_ size: " << players_by_id_.size() << std::endl;
+        std::cout << "  players_by_token_ size: " << players_by_token_.size() << std::endl;
     }
 } // namespace model

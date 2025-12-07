@@ -1,0 +1,893 @@
+[33mcommit 407f85ea5746f4be3e6d9d9c36914bc9d2f15fcb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 22:03:15 2025 +0800
+
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[33mcommit 1e29a0da9e9bfcfba297f1fe9b8b4591354801d9[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 21:36:09 2025 +0800
+
+    tried again
+
+[33mcommit 440a2fd59dfe2ea8282e71b3cdab1efd7a695888[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 19:38:23 2025 +0800
+
+    AAAAAA
+
+[33mcommit f187a85766716e21934b85241bab54cef463fe4f[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 19:36:50 2025 +0800
+
+    AAAA
+
+[33mcommit fa40447342d4db45721c4fe51821d0fec209e0c4[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 18:55:19 2025 +0800
+
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[33mcommit 2ae2241e15dc02bc15e62a905e7c1618c09e0b28[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 14:25:36 2025 +0800
+
+    AAAA
+
+[33mcommit 85524f43fa3332c054e0eaf6f4ca42f12ef18981[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Dec 3 14:20:20 2025 +0800
+
+    mmmm.....
+
+[33mcommit 00fcac57331b157b5c66d7b3e90144ee8df6041c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 23:58:57 2025 +0800
+
+    tried to add failure messages
+
+[33mcommit 1144f2340bc3a5e6b251a08f718dd78033a947bf[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 23:30:12 2025 +0800
+
+    39 tests failed
+
+[33mcommit 23d05d32e1ead61bf800ab3f75c631f354ee3f20[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 22:38:09 2025 +0800
+
+    failed 51 tests -tried to fix ticker
+
+[33mcommit 98075eb0656ca89d1980cab87e16041ab6682d02[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 21:53:49 2025 +0800
+
+    51 tests failed - again
+
+[33mcommit 41bcf5eb48778dc10658acbf50ca0057f34e3e81[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 16:32:07 2025 +0800
+
+    51 tests failes
+
+[33mcommit f1a9d98996fbdacf7c78dd3921dd2401e0c7c69f[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 16:01:02 2025 +0800
+
+    pupupu
+
+[33mcommit a419aa18ef827677201aaebe0747d42861249f8e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 15:42:26 2025 +0800
+
+    dddd
+
+[33mcommit a3296be14bf34b386613b198da0e9f87975c941b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Dec 2 15:11:56 2025 +0800
+
+    mmm
+
+[33mcommit be0ce3fead82fa530f3d59c3affc199dd4a3134a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 22:50:58 2025 +0800
+
+    changed database even more
+
+[33mcommit 4be2a5f81d1ccdab3546014dcf87ba72c49335f2[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 22:17:29 2025 +0800
+
+    changed db structure
+
+[33mcommit 8ab1b2143db5cd75907c87730b3dd9f4b845d569[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 20:44:42 2025 +0800
+
+    AAAAAAA
+
+[33mcommit 6a1d5e56ced187bcfeccfed2f711516944f28038[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 20:22:09 2025 +0800
+
+    tried to fix -- srver never started
+
+[33mcommit a0fb6c095931d9efe2615a83f1e58d9f01cea5b3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 18:54:49 2025 +0800
+
+    added a comma
+
+[33mcommit c1e31de7c56ed1cb25ba553c412bda37feb84ceb[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 18:20:56 2025 +0800
+
+    updated constructor
+
+[33mcommit ab80430751e3cee6cfb1be8340d7a61b9d098628[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 16:55:14 2025 +0800
+
+    fixed cmakelists AGAIN -- all tests failed
+
+[33mcommit eb2a1079ca3e17963ff8aea5873cf5a8769073a9[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 16:34:26 2025 +0800
+
+    updated cmakelists again -- all tests failed
+
+[33mcommit 13dff24b6bf2d969af8157fe09ddaf15a35b2eb4[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 16:11:36 2025 +0800
+
+    update cmakelists - all tests failed
+
+[33mcommit 79b2f45feed63530add123d031b1134c7f385a0a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 15:24:17 2025 +0800
+
+    updated conanfile -- all tests failed
+
+[33mcommit 73c3b1611f31d5eeb5f655b23a5cf57c72be76d1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Dec 1 14:21:18 2025 +0800
+
+    tried to fix test all failed
+
+[33mcommit 8d44ac7b63b0d6945f5b1a4f6961c6032a6b72d1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 27 17:48:57 2025 +0800
+
+    failed all tests tried to fix
+
+[33mcommit 8b44668a74593277166679cebb9a6449a1a0c99b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 21:27:34 2025 +0800
+
+    fixing tests first try
+
+[33mcommit 57b1dc34b23338b81bc2b86bf9a3976bb0e6b798[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 20:08:37 2025 +0800
+
+    docker problems
+
+[33mcommit e20364b098bafd01dce0a6eec5fc24e32c5d5d7a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 18:49:45 2025 +0800
+
+    leave_game 37%
+
+[33mcommit ab83aed714083a1dd7e4e70fa3caf8312eb7a32c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 16:01:28 2025 +0800
+
+    leave_game 31%
+
+[33mcommit c57c076f7e1d27312d8c1385b8541c92d9661d62[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 15:35:35 2025 +0800
+
+    leave_game 25%
+
+[33mcommit ffaaccbbdc88d4be48d542e8df66b63c4b6fd07e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 26 13:26:54 2025 +0800
+
+    tried to fix leave_game 6% again
+
+[33mcommit 766c385f4b131c310bc3150ef913451b682b89cd[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Nov 25 21:34:19 2025 +0800
+
+    leave_game 6%
+
+[33mcommit 0e6140f592700d03a0a16828ba4a13c47c12e9bc[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Nov 25 16:27:00 2025 +0800
+
+    fixed cmakelists
+
+[33mcommit b539588fb0b72acb016aef8ebf629baf0e6c98f3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Nov 25 16:02:37 2025 +0800
+
+    deleted unnescessary things
+
+[33mcommit 4ff6bf6c5f0efb4bbb4636950e325f81f173896b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Nov 25 15:35:47 2025 +0800
+
+    fixed extra letter problem
+
+[33mcommit 599ce7003e511fdf8aa8271403a7f8d7c8b92497[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Nov 24 21:58:19 2025 +0800
+
+    tried leave_game
+
+[33mcommit a756d14c358c25be8e84653140ab606a854ffba7[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 23 15:38:26 2025 +0800
+
+    this one should be right (serialization)
+
+[33mcommit d2c98b4ea5fee7f17838ed15e36c4cd25bed844a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 20 20:24:31 2025 +0800
+
+    fixed docker AGAIN
+
+[33mcommit 0c06ce18611697d61a3f1cc1978de3c8a0a703a1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 20 20:06:52 2025 +0800
+
+    fixed docker
+
+[33mcommit d834aaec636cd20ce0cd4ec97196024274d7e0bb[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 19 21:11:47 2025 +0800
+
+    first try sprint4
+
+[33mcommit 3e4f4d1d9dcff56eab8cfd1f9eaa95c29cc82eef[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Nov 17 16:41:30 2025 +0800
+
+    ;;
+
+[33mcommit dbd40cd5816d9fdd9f2989bb81ede892381f0bc7[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 17:03:27 2025 +0800
+
+    AAAAAAAAAAAAAAAAAAAAAA
+
+[33mcommit 9c6852a9a9b93b0e17f08600aa867ad4bf9cbf88[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 16:48:34 2025 +0800
+
+    again
+
+[33mcommit c2bd8a258e2037e46ee404879504abb110a59a75[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 16:46:23 2025 +0800
+
+    last task
+
+[33mcommit 53d5ea7e544a678cd71a8074410955cce21bf6f3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 16:25:40 2025 +0800
+
+    tried to fix
+
+[33mcommit 40deb86f434c354ec5800a8824a964b3a785911e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 16:05:57 2025 +0800
+
+    tried to fix last two one
+
+[33mcommit b869405442e513d9fb9c1bf008f839ff57514a88[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 15:43:11 2025 +0800
+
+    gather additions
+
+[33mcommit 9c0cad3f146b0e5349d508c49ba4a7778bd2ce2e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 15:07:23 2025 +0800
+
+    3 assertions failed
+
+[33mcommit 5c7b4b89797e09fcc4980bbe0096a963c62382ba[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 14:47:03 2025 +0800
+
+    updated again i guess?
+
+[33mcommit dd27d97b8404c8f59a4c52ca01e1c1266fb8de61[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 14:15:05 2025 +0800
+
+    let's try again i guess
+
+[33mcommit b4079cb0c07cc2f9eb50372e50c4ee2fb110c99b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 16 13:56:11 2025 +0800
+
+    AAAAAA
+
+[33mcommit 298ef398f597c2b92172fec5d5bd6d8bf80e24c3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 15 20:14:51 2025 +0800
+
+    updated catch 2
+
+[33mcommit 6e2ef74ec97cc731befbf1243f675894c329b589[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 15 20:09:52 2025 +0800
+
+    catch 2
+
+[33mcommit 4bd6ce16d6186d07952012457938ef9a94eb91b8[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 15 19:45:54 2025 +0800
+
+    ehhh
+
+[33mcommit 95330759ae091a790f8aead6a63704bd4a58dc63[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 15 19:42:57 2025 +0800
+
+    again
+
+[33mcommit 86b39f8ad2dd7dc8c3985a953aa4e14d1fb781d8[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 14 22:58:40 2025 +0800
+
+    updated dockerfile for gather dirs
+
+[33mcommit da429b17be04d29f31df85680b969a0eea2bc48c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 14 22:40:22 2025 +0800
+
+    static_lib
+
+[33mcommit c5953cc1deedb95c99b9166443d2fbd270bcae0e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 14 22:18:36 2025 +0800
+
+    eeeeeemm....
+
+[33mcommit 82868d3051f9c975a744f03913ff25d659013478[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 14 22:07:37 2025 +0800
+
+    tried to fix gen_objects
+
+[33mcommit e711d5879d4a5138baf8b4f83da703728c188ce9[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 14 21:24:46 2025 +0800
+
+    map_json changed
+
+[33mcommit 5d27a8bb004ea55e13e0f387f6a9de967a37290b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 13 23:07:26 2025 +0800
+
+    added dockerfile
+
+[33mcommit c7a7e34f63915aca850c6a6df286457ea3e6622e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 13 22:52:32 2025 +0800
+
+    returned to sprint 1
+
+[33mcommit cccee301c29830c0c32e023c6c5a587b2786d826[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Nov 13 22:29:58 2025 +0800
+
+    13/11
+
+[33mcommit 717101318035e12844b0d0ff951229eb434c01e7[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 9 17:17:29 2025 +0800
+
+    aa
+
+[33mcommit 65abb7bc6d13d9254d3f44309b1f3bd3d3983941[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 9 17:10:55 2025 +0800
+
+    aaaaa
+
+[33mcommit e121131bba19c20a9aab9aebf2c8b6b733e4bebf[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Nov 9 17:04:13 2025 +0800
+
+    new try
+
+[33mcommit 4af1744b5c3b17b7e7448a8215645b45c967f9e1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 21:33:52 2025 +0800
+
+    last try
+
+[33mcommit 770a84277658644164226e6b7587a76cf5774b07[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 21:25:12 2025 +0800
+
+    retried
+
+[33mcommit f74907a737eef4f1147ffa7c055f745fb6f81289[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 21:03:14 2025 +0800
+
+    deleted something
+
+[33mcommit e8ef3c1f9c4436b8ed55d59feeeeef5cd37f3a94[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 21:01:04 2025 +0800
+
+    added setup
+
+[33mcommit 8dec7fabbf9c41ca71729d0383cff5b429174f46[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 20:55:00 2025 +0800
+
+    devnull
+
+[33mcommit a9e62084ccf7d2bd9a145a15a02cff017c3c5ac8[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 19:30:13 2025 +0800
+
+    deleted sudo
+
+[33mcommit 7a665d1e344300f31e96fb4e9ca2c16e7ab75ca0[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 18:56:38 2025 +0800
+
+    redid
+
+[33mcommit 8c30a9538025c29a49e740a4effcc9c3abb75c6b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 18:43:13 2025 +0800
+
+    changed to 1/8
+
+[33mcommit 2c850df1e725efeddfa87e16f000879ddfbaca74[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 17:43:05 2025 +0800
+
+    aaaa
+
+[33mcommit 71c7450701f7090940cdfaece07a620578edec3e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 16:05:37 2025 +0800
+
+    update map_json
+
+[33mcommit 550d743a49bcdc718b58f76de1ba522a5c18e3b5[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 15:57:48 2025 +0800
+
+    deleted all
+
+[33mcommit e9e41ef96a5185f8ca6838e871505d9c482a9407[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 15:41:57 2025 +0800
+
+    deleted line
+
+[33mcommit 61c0d31278b47f7530420f5588b9875cf3268c45[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Nov 8 15:36:00 2025 +0800
+
+    last try
+
+[33mcommit f71ab878d8197a3d823cf1c47255abad363f233a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 21:10:32 2025 +0800
+
+    changed the version of boost
+
+[33mcommit d6bc36bfc4defe91493e71768512a6dbc5de7034[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 21:06:42 2025 +0800
+
+    aaaaa
+
+[33mcommit f53afb93880c0172b150098bad25858409f22cc4[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 20:51:07 2025 +0800
+
+    tried to change cmakelist
+
+[33mcommit 541fcd1447f10918213ac060665e6a2d6b442cb5[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 20:45:34 2025 +0800
+
+    i've tried to fix flamegraph
+
+[33mcommit a6eafcd74c2a942535e4022f09e21167d284e7da[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 16:03:21 2025 +0800
+
+    tried flamwgraph
+
+[33mcommit 76d9baa07ed1e734c584c02c4944ee323ec0945a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Nov 7 15:40:48 2025 +0800
+
+    i don't know what the problem
+
+[33mcommit 8a13954bf9ce4fc6aa301ac8b5fe042b1f9ed06f[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Nov 5 14:43:21 2025 +0800
+
+    05/11
+
+[33mcommit fcb656594e6c92fb6583b59e3c5765544c37c3fa[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 23 21:24:53 2025 +0800
+
+    first try command_line
+
+[33mcommit fe19ee3e12073d6f98172b2fd738b79fab013965[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Oct 22 22:04:32 2025 +0800
+
+    tried to fix rounded point problem
+
+[33mcommit 3f56a4e96082b74a8b6922b382662933f94d1e72[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Oct 22 20:38:30 2025 +0800
+
+    tried to makr something completely different
+
+[33mcommit ae76ff1d5a469d1480e0d37b47c1973be9718c69[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Oct 21 15:15:11 2025 +0800
+
+    how bad is this...
+
+[33mcommit 2ad3f5377019860f002f8a3fab4e7436a56b62fd[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Oct 20 21:55:35 2025 +0800
+
+    approximateltly right answers
+
+[33mcommit b566c23e27d00422801079e651342265b06b9e9e[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 23:45:07 2025 +0800
+
+    super bad version
+
+[33mcommit 043ad292e652e077e0e96c0e550a33de3bf62fd6[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 22:42:28 2025 +0800
+
+    i'm so tired...
+
+[33mcommit 16501769db6dad69d6be41617c65db877d83aa6a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 19:41:51 2025 +0800
+
+    new fix
+
+[33mcommit 1932b1504beedc0f0ee8f6ad94b6c7b6fc84fd9d[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 14:34:20 2025 +0800
+
+    i fixed at least doen direction problem
+
+[33mcommit 2928780e90f59cdc683545706ea7237f12b9659d[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 10:48:33 2025 +0800
+
+    fixed broad error
+
+[33mcommit 66420ebca0d08aee691658ca213e53d4d2497135[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 10:01:36 2025 +0800
+
+    fixed errors in move_players
+
+[33mcommit 705bf737887649123cd5cd0cd4837ff1e7e2e576[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 19 09:37:05 2025 +0800
+
+    time_control first try
+
+[33mcommit 862315770eb3b8fcdd379547c3cbded8965a2f21[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 16 21:27:57 2025 +0800
+
+    fixed invalid token problem
+
+[33mcommit c2faad9140aa82f80587f0cf48d9349859024c33[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 16 20:57:11 2025 +0800
+
+    added dockerfile
+
+[33mcommit 92540719b5a43586866c35b0224c63cd7c54491b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 16 20:38:06 2025 +0800
+
+    game_state first try
+
+[33mcommit 179f229d6b1475742545c53727a7d986c2369bc8[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Oct 15 21:11:44 2025 +0800
+
+    move players first try
+
+[33mcommit 74c13f1ec1c9a1a916d0a8dfd9ae2817cb10a5d4[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Oct 13 22:26:17 2025 +0800
+
+    tried to fix head requests
+
+[33mcommit 9a26e0ece29fdaf8ec132fb442f00c5ca54bbbae[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Oct 13 21:59:22 2025 +0800
+
+    changed dockergile
+
+[33mcommit 5bdabcd1f08a0cb9c462dba900106c0629527b56[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Oct 13 21:32:22 2025 +0800
+
+    i've tried to fix join_game
+
+[33mcommit 8be83bd780addb41b103e654d3e59ed5ac35eef3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 12 13:01:55 2025 +0800
+
+    deleted strm.flush
+
+[33mcommit c3f245b22022b86f47a2e10956925705de3ab524[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Oct 11 17:30:20 2025 +0800
+
+    deleted cout line
+
+[33mcommit 29cb4b9a147af161d4879f0702418fb9db669f4d[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 22:54:17 2025 +0800
+
+    i don't understand anything at this point
+
+[33mcommit 6c25a8874c438d8022048ca88dd96dc10f4cea47[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 22:23:05 2025 +0800
+
+    i'm going to cry today a lot
+
+[33mcommit 724ca9113c9b82f485954cd100534190f340b526[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 22:00:52 2025 +0800
+
+    hhhh
+
+[33mcommit 59d72de42faba3abb52d920594540b9cd3fbfd6b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 21:21:07 2025 +0800
+
+    aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+[33mcommit a410a9d8fee8d405765207f2f8802176e76539f8[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 21:06:09 2025 +0800
+
+    aaaa
+
+[33mcommit 19137db5605c8bfce912c5dd55b5cbb530398665[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 16:20:28 2025 +0800
+
+    server_logging i think i got it
+
+[33mcommit 8e6f3c05eb9b567897b25cc4b28886875b3ed28c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 15:52:19 2025 +0800
+
+    okay i was wrong
+
+[33mcommit ee899dd2b181e93d95ea493f452b1f1f360dc341[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 15:47:47 2025 +0800
+
+    last time
+
+[33mcommit ad98df4e3631ca15aba9fc652d582ea46bdc2de3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 15:34:38 2025 +0800
+
+    server_logging
+
+[33mcommit 0f012ce55c974aa527aa0ee658b433fbfb6b1004[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 10 15:15:59 2025 +0800
+
+    10/10
+
+[33mcommit 0ae5cfdcef3095b49b7c788e8cd515cdfbb1e9f5[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Oct 8 09:41:24 2025 +0800
+
+    08/10
+
+[33mcommit db4b7fc1d950e90fa6eccc28c2336d898924eb61[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Oct 7 22:15:14 2025 +0800
+
+    static_content
+
+[33mcommit e8c7966e06050d4d71dac9f5fa08219b0f3775ab[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 20:03:53 2025 +0800
+
+    eh
+
+[33mcommit 70f2025172d12dd81d3812b96b85f571ae7ba76f[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 20:00:48 2025 +0800
+
+    ??
+
+[33mcommit cd5c528d38320042d87de9a15de73c394d04c7fc[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 19:56:49 2025 +0800
+
+    that's the last ti,e i hope
+
+[33mcommit 6aa75aaa7fdec3db0401c6626c67209b4e35d2c1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 19:47:04 2025 +0800
+
+    AAAAAA
+
+[33mcommit f4c100a09954d231de908210ab2ba1c02e10fa29[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 16:29:04 2025 +0800
+
+    again
+
+[33mcommit c5e41ccb1082f269c149289fb2c0ba2591a44356[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sun Oct 5 16:04:58 2025 +0800
+
+    05/10
+
+[33mcommit f22b3f20669fbb0fee8a27fad2448e7a1ea2af08[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Sat Oct 4 19:58:50 2025 +0800
+
+    dockerfile
+
+[33mcommit 57a0dd38e36501aac7e97b9f865ff0757e1f2f0a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 3 22:32:49 2025 +0800
+
+    ehhhh
+
+[33mcommit 48240e2c535477c811a154e20fbfe6d5f2f5b558[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 3 22:28:36 2025 +0800
+
+    aaaaaaaaaaaaa
+
+[33mcommit 357d6a62fd1b8f76d7fc8dc97f66a43de2692d15[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 3 22:16:40 2025 +0800
+
+    03/10
+
+[33mcommit a564b90e88aca3c5d6fd7b4440edf44156c85489[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 3 22:12:42 2025 +0800
+
+    new_version
+
+[33mcommit a9e9c546a6a6bd19ca96cf7625da6fdc9c439e86[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Fri Oct 3 21:23:33 2025 +0800
+
+    map
+
+[33mcommit 1e4f4a2a6969d2fb2b2ef47d0768902b2a86e1c6[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 2 21:46:51 2025 +0800
+
+    aaaaa
+
+[33mcommit d609cd442e958d6a2a70c4c624087562ee324dd3[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 2 21:32:52 2025 +0800
+
+    ehhhh
+
+[33mcommit 9b295640f6d6b07d6e08703125933df8486d3f9b[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 2 21:09:28 2025 +0800
+
+    and this time?
+
+[33mcommit 94726d04416207d6562f6b46a319b7e1cc453068[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 2 20:35:38 2025 +0800
+
+    point added async_server
+
+[33mcommit 4a293640dd489d22fbac1b283a364dda9e240c74[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Thu Oct 2 20:07:43 2025 +0800
+
+    async_server
+
+[33mcommit fe34629a1d218e84278bfc25e1a38f463aab0d4c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Wed Oct 1 22:41:46 2025 +0800
+
+    cafeteria
+
+[33mcommit 991dad2ff2c4a2fe75301f33f62ee3c2cec6c257[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Sep 30 23:02:34 2025 +0800
+
+    i think it is -- restaurant
+
+[33mcommit f19d4b33e6d882456f6f3d44fdf914ad385f3eb1[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Sep 30 22:41:17 2025 +0800
+
+    restaurant again
+
+[33mcommit f0e4e4c066193b87eebf47b673d391abd6d6fd12[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Tue Sep 30 22:23:15 2025 +0800
+
+    restaurant
+
+[33mcommit 7f51099b2befaf7722b070645568e6e816d3d61f[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 22:06:42 2025 +0800
+
+    it's almost done!! sync server
+
+[33mcommit f9360168d464ad2a98416f2346087e210ccbb62c[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 22:03:14 2025 +0800
+
+    it's at least getting better
+
+[33mcommit 6b28d1ce76d5fa478d770341e7560fd9e842e026[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 21:57:44 2025 +0800
+
+    lil more of lil chamges to sync server
+
+[33mcommit 431878c983fb6b4330e7107b4821a2f08431a026[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 21:54:16 2025 +0800
+
+    little changes to sync server
+
+[33mcommit 6f461330b5e5b7e807eb9c6a78be0ae601b4012d[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 21:45:34 2025 +0800
+
+    sync server
+
+[33mcommit 09279243ad280210653ba8988f8cac3c1b295f0a[m
+Author: Babyr Anastasia <nbabyr@vk.com>
+Date:   Mon Sep 29 15:05:21 2025 +0800
+
+    29.10
+
+[33mcommit 719601b083d348ca25f79fe54c6b9c27f92cf622[m
+Author: frumosule <adres.akaunta@gmail.com>
+Date:   Sun Sep 28 19:22:54 2025 +0800
+
+    Initial commit

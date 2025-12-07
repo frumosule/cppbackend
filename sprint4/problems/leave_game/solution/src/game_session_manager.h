@@ -53,6 +53,11 @@ namespace model
             stat_provider_ = provider;
         }
 
+        void SetManualTickMode(bool manual)
+        {
+            manual_tick_mode_ = manual;
+        }
+
     private:
         Game &game_;
 
@@ -65,19 +70,23 @@ namespace model
             SessionData() = default;
         };
 
-        struct PlayerSessionData {
+        struct PlayerSessionData
+        {
             std::chrono::steady_clock::time_point join_time;
             std::chrono::steady_clock::time_point last_movement_time;
             std::chrono::steady_clock::time_point inactive_start_time;
             bool is_active = true;
             bool inactive_started = false;
             unsigned total_playtime_ms = 0;
+            int inactive_accumulated_ms = 0;
         };
 
         std::unordered_map<Map::Id, std::shared_ptr<SessionData>> sessions_;
         std::unordered_map<std::string, std::shared_ptr<Player>> players_by_token_;
         std::unordered_map<Player::Id, std::shared_ptr<Player>> players_by_id_;
         std::unordered_map<Player::Id, PlayerSessionData> player_sessions_;
+        bool manual_tick_mode_ = false; // Режим ручных тиков
+        int last_tick_delta_ms_ = 0;
         mutable std::mutex mutex_;
         Player::Id next_player_id_ = 0;
         std::mt19937 generator_{std::random_device{}()};
