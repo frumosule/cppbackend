@@ -10,7 +10,6 @@ namespace infrastructure
                                              std::chrono::milliseconds save_period)
         : session_manager_(session_manager), state_file_(state_file), save_period_(save_period)
     {
-        // Создаем директорию если нужно
         auto parent_path = state_file_.parent_path();
         if (!parent_path.empty())
         {
@@ -44,7 +43,6 @@ namespace infrastructure
     {
         try
         {
-            // Создаем временный файл для атомарности
             auto temp_file = state_file_;
             temp_file += ".tmp";
 
@@ -58,7 +56,6 @@ namespace infrastructure
 
             file.close();
 
-            // Атомарно заменяем старый файл новым
             std::filesystem::rename(temp_file, state_file_);
 
             std::cout << "Game state saved to: " << state_file_ << std::endl;

@@ -9,7 +9,6 @@ namespace http_handler
 
     namespace json = boost::json;
 
-    // request_handler.cpp - исправленный конструктор
     RequestHandler::RequestHandler(model::Game &game,
                                    model::GameSessionManager &session_manager,
                                    const std::string &static_path,
@@ -22,7 +21,6 @@ namespace http_handler
           map_loot_types_(std::move(map_loot_types)),
           stat_provider_(std::move(stat_provider))
     {
-        // Инициализация mime_types_
         mime_types_ = {
             {".htm", "text/html"},
             {".html", "text/html"},
@@ -430,7 +428,6 @@ namespace http_handler
         std::string auth_value = auth_header->value();
         std::cout << "ExtractAuthToken: header value = " << auth_value << std::endl;
 
-        // Проверяем формат "Bearer <token>"
         const std::string bearer_prefix = "Bearer ";
         if (!auth_value.starts_with(bearer_prefix))
         {
@@ -440,7 +437,6 @@ namespace http_handler
 
         std::string token = auth_value.substr(bearer_prefix.size());
 
-        // Проверяем, что токен не пустой
         if (token.empty())
         {
             std::cout << "ExtractAuthToken: Empty token after 'Bearer '" << std::endl;
@@ -507,10 +503,8 @@ namespace http_handler
                                         json::object{{"code", "invalidArgument"}, {"message", "Invalid timeDelta"}}, req);
             }
 
-            // Обновляем состояние игры
             session_manager_.UpdateGameState(time_delta);
 
-            // УВЕДОМЛЯЕМ СЛУШАТЕЛЕЙ О ТИКЕ
             session_manager_.NotifyListeners(std::chrono::milliseconds(time_delta));
 
             StringResponse response = MakeJsonResponse(http::status::ok, json::object{}, req);
@@ -592,7 +586,6 @@ namespace http_handler
         }
 
         auto players = session_manager_.GetPlayersByToken(*auth_token);
-        //std::cout << "HandleGameState: player found = " << (player ? "YES" : "NO") << std::endl;
         if (players.empty())
         {
             std::cout << "HandleGameState: returning 401 - token not found or player retired" << std::endl;
@@ -923,17 +916,14 @@ namespace http_handler
         return game_.GetDefaultDogSpeed();
     }
 
-    // request_handler.cpp - ИСПРАВЛЕННЫЙ метод HandleGetRecords
     StringResponse RequestHandler::HandleGetRecords(StringRequest &&req)
     {
         std::cout << "\n=== HandleGetRecords called ===" << std::endl;
         std::cout << "Target: " << std::string(req.target()) << std::endl;
 
-        // Проверь, что stat_provider_ инициализирован
         if (!stat_provider_)
         {
             std::cout << "WARNING: stat_provider_ is null" << std::endl;
-            // Возвращаем 200 OK с пустым массивом
             boost::json::array empty_array;
             StringResponse response(http::status::ok, req.version());
             response.set(http::field::content_type, "application/json");
@@ -945,12 +935,10 @@ namespace http_handler
 
         try
         {
-            // Парсим query parameters
             std::string target = std::string(req.target());
             int start = 0;
             int max_items = 100;
 
-            // Убираем "/api/v1/game/records" чтобы получить query
             size_t records_pos = target.find("/api/v1/game/records");
             if (records_pos != std::string::npos)
             {
@@ -960,7 +948,6 @@ namespace http_handler
                 {
                     std::string query_str = query_part.substr(1);
 
-                    // Парсим параметры
                     std::unordered_map<std::string, std::string> params;
                     std::stringstream ss(query_str);
                     std::string param;
@@ -1016,7 +1003,6 @@ namespace http_handler
 
             std::cout << "Getting records: start=" << start << ", max_items=" << max_items << std::endl;
 
-            // Используем StatProvider для получения данных
             auto stats = stat_provider_->GetStats(start, max_items);
 
             boost::json::array records;
@@ -1025,7 +1011,7 @@ namespace http_handler
                 boost::json::object record;
                 record["name"] = stat.name;
                 record["score"] = stat.score;
-                record["playTime"] = stat.playtime; // уже в секундах
+                record["playTime"] = stat.playtime; 
                 records.push_back(record);
             }
 

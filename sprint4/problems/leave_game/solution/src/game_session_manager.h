@@ -85,13 +85,13 @@ namespace model
         std::unordered_map<std::string, std::shared_ptr<Player>> players_by_token_;
         std::unordered_map<Player::Id, std::shared_ptr<Player>> players_by_id_;
         std::unordered_map<Player::Id, PlayerSessionData> player_sessions_;
-        bool manual_tick_mode_ = false; // Режим ручных тиков
+        bool manual_tick_mode_ = false; 
         int last_tick_delta_ms_ = 0;
         mutable std::mutex mutex_;
         Player::Id next_player_id_ = 0;
         std::mt19937 generator_{std::random_device{}()};
         bool randomize_spawn_ = false;
-        std::chrono::milliseconds retirement_timeout_ = std::chrono::seconds(60); // по умолчанию 1 минута
+        std::chrono::milliseconds retirement_timeout_ = std::chrono::seconds(60); 
         std::shared_ptr<database::StatProvider> stat_provider_;
 
         std::vector<std::shared_ptr<app::ApplicationListener>> listeners_;

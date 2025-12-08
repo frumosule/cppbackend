@@ -3,7 +3,6 @@
 
 namespace model {
 
-    // BagItem implementations
     BagItem::BagItem(LostObject::Id id, int type, int value)
         : id(id), type(type), value(value) {
     }
@@ -12,7 +11,6 @@ namespace model {
         return id == other.id && type == other.type;
     }
 
-    // Player implementations
     Player::Player(Id id, std::string name, std::string auth_token, 
                    Map::Id map_id, double start_x, double start_y, size_t bag_capacity)
         : id_(id), name_(std::move(name)), auth_token_(std::move(auth_token)),
@@ -101,7 +99,7 @@ namespace model {
         }
         for (const auto& item : bag_) {
             if (item.id == id) {
-                return false; // Уже есть такой предмет
+                return false; 
             }
         }
         bag_.emplace_back(id, type, value);
@@ -143,7 +141,6 @@ namespace model {
         score_ = score;
     }
 
-    // GameSession implementations
     GameSession::GameSession(Map::Id map_id) 
         : map_id_(std::move(map_id)) {
     }

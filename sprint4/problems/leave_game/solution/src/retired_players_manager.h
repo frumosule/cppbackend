@@ -96,10 +96,8 @@ namespace database
         {
         }
 
-        // Получить статистику
         std::vector<StatInfo> GetStats(int start, int max_items) const;
         
-        // Добавить игрока на покой
         void AddRetiredPlayer(const std::string &name, int score, double playtime_seconds);
 
     private:

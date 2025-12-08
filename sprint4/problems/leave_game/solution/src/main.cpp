@@ -96,7 +96,6 @@ int main(int argc, const char *argv[])
 
         setup_logging();
 
-        // Загружаем конфигурацию и получаем JSON объект
         auto load_result = json_loader::LoadGameWithLootConfig(args.config_file);
         model::Game game = std::move(load_result.game);
 
@@ -154,9 +153,6 @@ int main(int argc, const char *argv[])
                 ioc.stop();
             } });
 
-        // ------------------------------------------------------------
-        // ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
-        // ------------------------------------------------------------
         const char *db_url = std::getenv("GAME_DB_URL");
         std::shared_ptr<database::ConnectionPool> db_pool;
         std::shared_ptr<database::StatProvider> stat_provider;
@@ -167,7 +163,6 @@ int main(int argc, const char *argv[])
 
             try
             {
-                // Создаем пул соединений
                 db_pool = std::make_shared<database::ConnectionPool>(
                     std::max(1u, num_threads),
                     [db_url]()
@@ -176,15 +171,12 @@ int main(int argc, const char *argv[])
                         return std::make_shared<pqxx::connection>(db_url);
                     });
 
-                // Инициализируем БД
                 database::InitializeDB(db_pool);
                 std::cout << "Database initialized successfully" << std::endl;
 
-                // Создаем StatProvider
                 stat_provider = std::make_shared<database::StatProvider>(db_pool);
                 std::cout << "StatProvider created" << std::endl;
 
-                // Настройка времени бездействия из конфига
                 double retirement_time_seconds = 60.0;
                 if (config.is_object() && config.as_object().contains("dogRetirementTime"))
                 {
@@ -212,7 +204,6 @@ int main(int argc, const char *argv[])
             stat_provider = nullptr;
         }
 
-        // Создаем RequestHandler
         http_handler::RequestHandler base_handler{
             game,
             session_manager,
@@ -259,7 +250,6 @@ int main(int argc, const char *argv[])
              session_manager.SetManualTickMode(true);
         }
 
-        // Таймер для проверки неактивных игроков
         std::shared_ptr<Ticker> retirement_ticker;
 
         if (args.tick_period > 0)
@@ -334,7 +324,6 @@ int main(int argc, const char *argv[])
             session_manager.NotifyShutdown();
         }
 
-        // Останавливаем таймеры
         if (retirement_ticker)
         {
             retirement_ticker->Stop();

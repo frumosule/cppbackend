@@ -36,7 +36,6 @@ namespace model
         return ss.str();
     }
 
-    // game_session_manager.cpp - метод AddPlayer
     std::shared_ptr<Player> GameSessionManager::AddPlayer(const Map::Id &map_id, const std::string &player_name)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -56,9 +55,8 @@ namespace model
         auto player = std::make_shared<Player>(next_player_id_++, player_name, auth_token,
                                                map_id, pos_x, pos_y, bag_capacity);
 
-        // Игрок присоединяется со скоростью 0 - значит сразу AFK!
         player->SetSpeed(0.0, 0.0);
-        player->SetAFK(); // ← ВАЖНО: сразу ставим AFK
+        player->SetAFK(); 
 
         session->players[player->GetId()] = player;
         players_by_token_[auth_token] = player;
@@ -68,9 +66,9 @@ namespace model
         PlayerSessionData session_data;
         session_data.join_time = now;
         session_data.last_movement_time = now;
-        session_data.inactive_start_time = now; // ← AFK начинается сразу
+        session_data.inactive_start_time = now; 
         session_data.is_active = true;
-        session_data.inactive_started = true; // ← ВАЖНО: true сразу!
+        session_data.inactive_started = true; 
         session_data.total_playtime_ms = 0;
 
         player_sessions_[player->GetId()] = session_data;
@@ -140,19 +138,16 @@ namespace model
             player->SetSpeed(0.0, 0.0);
         }
 
-        // Обновляем сессию игрока
         auto session_it = player_sessions_.find(player->GetId());
         if (session_it != player_sessions_.end())
         {
             if (move == "")
             {
-                // Игрок остановился - начинаем AFK
                 session_it->second.inactive_started = true;
                 session_it->second.inactive_start_time = std::chrono::steady_clock::now();
             }
             else
             {
-                // Игрок двигается - сбрасываем AFK
                 session_it->second.inactive_started = false;
             }
         }
@@ -366,6 +361,8 @@ namespace model
             }
         }
 
+        CheckInactivePlayersUnsafe();
+
         for (auto &[map_id, session] : sessions_)
         {
             auto map = game_.FindMap(map_id);
@@ -451,8 +448,6 @@ namespace model
                 }
             }
         }
-
-        CheckInactivePlayersUnsafe();
     }
 
     std::unordered_map<Point, std::vector<const Road *>, model::PointHash>
@@ -819,7 +814,6 @@ namespace model
 
         boost::json::object state;
 
-        // Сериализуем игроков
         boost::json::array players_array;
         for (const auto &[player_id, player] : players_by_id_)
         {
@@ -836,7 +830,6 @@ namespace model
             player_obj["score"] = player->GetScore();
             player_obj["bag_capacity"] = player->GetBagCapacity();
 
-            // Сериализуем сумку
             boost::json::array bag_array;
             for (const auto &item : player->GetBag())
             {
@@ -852,7 +845,6 @@ namespace model
         }
         state["players"] = players_array;
 
-        // Сериализуем сессии и потерянные предметы
         boost::json::array sessions_array;
         for (const auto &[map_id, session_data] : sessions_)
         {
@@ -860,7 +852,6 @@ namespace model
             session_obj["map_id"] = *map_id;
             session_obj["next_lost_object_id"] = session_data->next_lost_object_id;
 
-            // Сериализуем потерянные предметы
             boost::json::array lost_objects_array;
             for (const auto &[obj_id, lost_obj] : session_data->lost_objects)
             {
@@ -888,7 +879,6 @@ namespace model
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        // Очищаем текущее состояние
         sessions_.clear();
         players_by_token_.clear();
         players_by_id_.clear();
@@ -899,7 +889,7 @@ namespace model
         if (content.empty())
         {
             std::cout << "DESERIALIZE: Empty state file, starting fresh" << std::endl;
-            return; // Пустой файл - начинаем с чистого листа
+            return;
         }
 
         try
@@ -907,21 +897,18 @@ namespace model
             auto state = boost::json::parse(content).as_object();
             std::cout << "DESERIALIZE: Parsed state JSON successfully" << std::endl;
 
-            // Восстанавливаем next_player_id
             if (state.contains("next_player_id"))
             {
                 next_player_id_ = state["next_player_id"].as_int64();
                 std::cout << "DESERIALIZE: Restored next_player_id: " << next_player_id_ << std::endl;
             }
 
-            // Восстанавливаем randomize_spawn
             if (state.contains("randomize_spawn"))
             {
                 randomize_spawn_ = state["randomize_spawn"].as_bool();
                 std::cout << "DESERIALIZE: Restored randomize_spawn: " << randomize_spawn_ << std::endl;
             }
 
-            // ВОССТАНАВЛИВАЕМ СЕССИИ ПЕРВЫМИ!
             if (state.contains("sessions"))
             {
                 const auto &sessions_array = state["sessions"].as_array();
@@ -938,7 +925,6 @@ namespace model
                     std::cout << "DESERIALIZE: Creating session for map: " << *map_id
                               << ", next_lost_object_id: " << session_data->next_lost_object_id << std::endl;
 
-                    // Восстанавливаем потерянные предметы
                     if (session_obj.contains("lost_objects"))
                     {
                         const auto &lost_objects_array = session_obj.at("lost_objects").as_array();
@@ -968,7 +954,6 @@ namespace model
                 std::cout << "DESERIALIZE: No sessions found in state file" << std::endl;
             }
 
-            // Восстанавливаем игроков ПОСЛЕ сессий
             if (state.contains("players"))
             {
                 const auto &players_array = state["players"].as_array();
@@ -995,7 +980,7 @@ namespace model
                     if (players_by_id_.find(id) != players_by_id_.end())
                     {
                         std::cout << "WARNING: Duplicate player ID: " << id << " - skipping" << std::endl;
-                        continue; // Пропусти дубликат
+                        continue; 
                     }
 
                     auto player = std::make_shared<Player>(id, name, auth_token, map_id, pos_x, pos_y, bag_capacity);
@@ -1006,7 +991,6 @@ namespace model
                     player->SetDirection(static_cast<Direction>(direction_char));
                     player->SetScore(score);
 
-                    // Восстанавливаем сумку
                     if (player_obj.contains("bag"))
                     {
                         const auto &bag_array = player_obj.at("bag").as_array();
@@ -1022,7 +1006,6 @@ namespace model
                         }
                     }
 
-                    // Добавляем игрока в соответствующие контейнеры
                     auto session = FindSessionUnsafe(map_id);
                     if (!session)
                     {
@@ -1040,7 +1023,6 @@ namespace model
                     std::cout << "DESERIALIZE: Added player to session, session now has " << session->players.size() << " players" << std::endl;
                 }
 
-                // Заполняем players_by_token_ после восстановления всех игроков
                 std::cout << "DESERIALIZE: Filling players_by_token_ with " << players_by_id_.size() << " players" << std::endl;
                 for (const auto &[player_id, player] : players_by_id_)
                 {
@@ -1070,7 +1052,6 @@ namespace model
         {
             it->second.last_movement_time = std::chrono::steady_clock::now();
 
-            // Сбрасываем флаг бездействия при любом движении
             if (it->second.inactive_started)
             {
                 it->second.inactive_started = false;
@@ -1099,12 +1080,10 @@ namespace model
         {
             std::cout << "RemovePlayerUnsafe: found player " << player_it->second->GetName() << std::endl;
 
-            // Удаляем из players_by_token_
             auto token = player_it->second->GetAuthToken();
             players_by_token_.erase(token);
             std::cout << "RemovePlayerUnsafe: removed from players_by_token_, token=" << token << std::endl;
 
-            // Удаляем из сессии
             auto map_id = player_it->second->GetMapId();
             auto session = FindSessionUnsafe(map_id);
             if (session)
@@ -1150,23 +1129,19 @@ namespace model
             std::cout << "speed=(" << player->second->GetSpeedX() << "," << player->second->GetSpeedY() << "), ";
             std::cout << "inactive_started=" << session_data.inactive_started << std::endl;
 
-            // Если игрок AFK (скорость = 0)
             if (player->second->GetSpeedX() == 0.0 && player->second->GetSpeedY() == 0.0)
             {
                 if (!session_data.inactive_started)
                 {
-                    // Начинаем отсчет AFK
                     session_data.inactive_started = true;
                     session_data.inactive_start_time = now;
                     session_data.inactive_accumulated_ms = 0;
                 }
                 else
                 {
-                    // Проверяем сколько времени прошло
-                    if (manual_tick_mode_) // НОВОЕ: флаг ручного режима
+                    if (manual_tick_mode_) 
                     {
-                        // Используем накопленное время вместо реального
-                        session_data.inactive_accumulated_ms += last_tick_delta_ms_; // НОВОЕ
+                        session_data.inactive_accumulated_ms += last_tick_delta_ms_;
                         auto inactive_duration = std::chrono::milliseconds(session_data.inactive_accumulated_ms);
 
                         std::cout << ", accumulated_inactive=" << session_data.inactive_accumulated_ms << "ms" << std::endl;
@@ -1179,7 +1154,6 @@ namespace model
                     }
                     else
                     {
-                        // Режим авто-тика: используем реальное время
                         auto inactive_duration = now - session_data.inactive_start_time;
                         auto inactive_ms = std::chrono::duration_cast<std::chrono::milliseconds>(inactive_duration).count();
 
@@ -1195,7 +1169,6 @@ namespace model
             }
             else
             {
-                // Игрок двигается - сбрасываем AFK
                 session_data.inactive_started = false;
                 session_data.inactive_accumulated_ms = 0;
             }
@@ -1228,7 +1201,6 @@ namespace model
 
         if (!manual_tick_mode_)
         {
-            // Обновляем общее время игры перед уходом
             auto now = std::chrono::steady_clock::now();
             auto total_play_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 now - session_it->second.join_time);
@@ -1245,7 +1217,6 @@ namespace model
                   << ", playtime=" << playtime_seconds << "s"
                   << ", score=" << player->GetScore() << std::endl;
 
-        // Сохраняем рекорд в базу данных через StatProvider
         if (stat_provider_)
         {
             try
@@ -1271,7 +1242,6 @@ namespace model
         std::cout << "  players_by_id_ size: " << players_by_id_.size() << std::endl;
         std::cout << "  players_by_token_ size: " << players_by_token_.size() << std::endl;
 
-        // Удаляем игрока из всех структур
         RemovePlayerUnsafe(player_id);
         player_sessions_.erase(player_id);
 

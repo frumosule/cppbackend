@@ -17,7 +17,7 @@ struct GameLoadResult {
     model::Game game;
     std::optional<LootGeneratorConfig> loot_config;
     std::unordered_map<model::Map::Id, boost::json::array, model::Game::MapIdHasher> map_loot_types;
-    std::unordered_map<model::Map::Id, std::unordered_map<int, int>, model::Game::MapIdHasher> map_loot_values; // НОВОЕ
+    std::unordered_map<model::Map::Id, std::unordered_map<int, int>, model::Game::MapIdHasher> map_loot_values; 
 };
 
 model::Game LoadGame(const std::filesystem::path& json_path);

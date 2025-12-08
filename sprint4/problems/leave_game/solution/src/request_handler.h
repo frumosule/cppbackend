@@ -10,7 +10,6 @@
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
 
-// Форвардное объявление
 namespace database {
     class StatProvider;
 }

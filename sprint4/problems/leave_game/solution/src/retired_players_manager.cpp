@@ -8,10 +8,9 @@ namespace database
     {
         auto conn = pool->GetConnection();
         pqxx::work work{*conn};
-        
+
         std::cout << "Initializing database..." << std::endl;
-        
-        // Создаем таблицу если ее нет
+
         work.exec(R"(
 CREATE TABLE IF NOT EXISTS retired_players (
     id SERIAL PRIMARY KEY,
@@ -20,8 +19,7 @@ CREATE TABLE IF NOT EXISTS retired_players (
     playtime double precision NOT NULL
 );
 )");
-        
-        // Создаем индексы для быстрой сортировки
+
         work.exec(R"(
 CREATE INDEX IF NOT EXISTS retired_players_score_idx ON retired_players (score DESC);
 )");
@@ -32,7 +30,6 @@ CREATE INDEX IF NOT EXISTS retired_players_playtime_idx ON retired_players (play
 CREATE INDEX IF NOT EXISTS retired_players_name_idx ON retired_players (name ASC);
 )");
 
-        // Подготавливаем запросы
         conn->prepare("add_retired_player",
                       "INSERT INTO retired_players (name, score, playtime) VALUES ($1, $2, $3)");
         conn->prepare("get_records",
@@ -46,33 +43,40 @@ CREATE INDEX IF NOT EXISTS retired_players_name_idx ON retired_players (name ASC
 
     std::vector<StatInfo> StatProvider::GetStats(int start, int max_items) const
     {
-        if (!pool_) {
+        if (!pool_)
+        {
             std::cerr << "StatProvider::GetStats: pool is null" << std::endl;
             return {};
         }
-        
-        try {
+
+        try
+        {
             auto conn = pool_->GetConnection();
             pqxx::work work{*conn};
             std::vector<StatInfo> stats;
 
             auto result = work.exec_prepared("get_records", start, max_items);
-            
+
             std::cout << "Got " << result.size() << " records from database" << std::endl;
 
             for (const auto &row : result)
             {
-                try {
+                try
+                {
                     auto [name, score, playtime] = row.as<std::string, int, double>();
                     stats.push_back({name, score, playtime});
-                } catch (const std::exception& e) {
+                }
+                catch (const std::exception &e)
+                {
                     std::cerr << "Error parsing row: " << e.what() << std::endl;
                 }
             }
 
             work.commit();
             return stats;
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             std::cerr << "StatProvider::GetStats error: " << e.what() << std::endl;
             return {};
         }
@@ -80,24 +84,28 @@ CREATE INDEX IF NOT EXISTS retired_players_name_idx ON retired_players (name ASC
 
     void StatProvider::AddRetiredPlayer(const std::string &name, int score, double playtime_seconds)
     {
-        if (!pool_) {
+        if (!pool_)
+        {
             std::cerr << "StatProvider::AddRetiredPlayer: pool is null" << std::endl;
             return;
         }
-        
-        try {
+
+        try
+        {
             auto conn = pool_->GetConnection();
             pqxx::work w(*conn);
-            
-            std::cout << "Adding retired player: " << name 
-                      << ", score: " << score 
+
+            std::cout << "Adding retired player: " << name
+                      << ", score: " << score
                       << ", playtime: " << playtime_seconds << "s" << std::endl;
-            
+
             w.exec_prepared("add_retired_player", name, score, playtime_seconds);
             w.commit();
-            
+
             std::cout << "Retired player added successfully" << std::endl;
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             std::cerr << "Error adding retired player: " << e.what() << std::endl;
         }
     }

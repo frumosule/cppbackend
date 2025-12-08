@@ -6,12 +6,10 @@
 namespace model {
 using namespace std::literals;
 
-// PointHash implementation
 size_t PointHash::operator()(const Point& p) const {
     return std::hash<int>{}(p.x) ^ (std::hash<int>{}(p.y) << 1);
 }
 
-// Road implementations
 Road::Road(HorizontalTag, Point start, Coord end_x) noexcept
     : start_{start}, end_{end_x, start.y} {
 }
@@ -36,7 +34,6 @@ Point Road::GetEnd() const noexcept {
     return end_;
 }
 
-// Building implementations
 Building::Building(Rectangle bounds) noexcept
     : bounds_{bounds} {
 }
@@ -45,7 +42,6 @@ const Rectangle& Building::GetBounds() const noexcept {
     return bounds_;
 }
 
-// Office implementations
 Office::Office(Id id, Point position, Offset offset) noexcept
     : id_{std::move(id)}, position_{position}, offset_{offset} {
 }
@@ -62,12 +58,10 @@ Offset Office::GetOffset() const noexcept {
     return offset_;
 }
 
-// LostObject implementation
 LostObject::LostObject(Id id, int type, Point position, int value)
     : id(id), type(type), position(position), value(value) {
 }
 
-// Map implementations
 Map::Map(Id id, std::string name) noexcept
     : id_(std::move(id)), name_(std::move(name)) {
 }
@@ -174,7 +168,6 @@ Point Map::GetRandomPoint(std::mt19937& generator) const {
     }
 }
 
-// Game implementations
 void Game::AddMap(Map map) {
     const size_t index = maps_.size();
     if (auto [it, inserted] = map_id_to_index_.emplace(map.GetId(), index); !inserted) {
