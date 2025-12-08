@@ -340,8 +340,6 @@ namespace model
         std::cout << "=== UpdateGameState #" << tick_counter
                   << ", delta=" << time_delta_ms << "ms ===" << std::endl;
 
-        CheckInactivePlayersUnsafe();
-
         for (auto &[player_id, player] : players_by_id_)
         {
             if (player->GetSpeedX() == 0.0 && player->GetSpeedY() == 0.0)
@@ -453,6 +451,8 @@ namespace model
                 }
             }
         }
+
+        CheckInactivePlayersUnsafe();
     }
 
     std::unordered_map<Point, std::vector<const Road *>, model::PointHash>
@@ -493,11 +493,11 @@ namespace model
 
                 std::cout << "  Adding horizontal points from " << start_x << " to " << end_x << " at y=" << start.y << std::endl;
 
-                //for (; start_x <= end_x; ++start_x)
+                // for (; start_x <= end_x; ++start_x)
                 //{
-                    //Point p = {start_x, start.y};
-                    //roads_graph[p].push_back(&road);
-                    //std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                // Point p = {start_x, start.y};
+                // roads_graph[p].push_back(&road);
+                // std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
                 //}
             }
             else
@@ -516,11 +516,11 @@ namespace model
 
                 std::cout << "  Adding vertical points from " << start_y << " to " << end_y << " at x=" << start.x << std::endl;
 
-                //for (; start_y <= end_y; ++start_y)
+                // for (; start_y <= end_y; ++start_y)
                 //{
-                  //  Point p = {start.x, start_y};
-                    //roads_graph[p].push_back(&road);
-                    //std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                //   Point p = {start.x, start_y};
+                // roads_graph[p].push_back(&road);
+                // std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
                 //}
             }
         }
@@ -1148,7 +1148,7 @@ namespace model
 
             std::cout << "Player " << player_id << " (" << player->second->GetName() << "): ";
             std::cout << "speed=(" << player->second->GetSpeedX() << "," << player->second->GetSpeedY() << "), ";
-            std::cout << "inactive_started=" << session_data.inactive_started;
+            std::cout << "inactive_started=" << session_data.inactive_started << std::endl;
 
             // Если игрок AFK (скорость = 0)
             if (player->second->GetSpeedX() == 0.0 && player->second->GetSpeedY() == 0.0)
