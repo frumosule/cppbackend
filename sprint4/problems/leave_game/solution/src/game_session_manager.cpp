@@ -453,7 +453,6 @@ namespace model
                 }
             }
         }
-        CheckInactivePlayersUnsafe();
     }
 
     std::unordered_map<Point, std::vector<const Road *>, model::PointHash>
@@ -494,12 +493,12 @@ namespace model
 
                 std::cout << "  Adding horizontal points from " << start_x << " to " << end_x << " at y=" << start.y << std::endl;
 
-                for (; start_x <= end_x; ++start_x)
-                {
-                    Point p = {start_x, start.y};
-                    roads_graph[p].push_back(&road);
-                    std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
-                }
+                //for (; start_x <= end_x; ++start_x)
+                //{
+                    //Point p = {start_x, start.y};
+                    //roads_graph[p].push_back(&road);
+                    //std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                //}
             }
             else
             {
@@ -517,12 +516,12 @@ namespace model
 
                 std::cout << "  Adding vertical points from " << start_y << " to " << end_y << " at x=" << start.x << std::endl;
 
-                for (; start_y <= end_y; ++start_y)
-                {
-                    Point p = {start.x, start_y};
-                    roads_graph[p].push_back(&road);
-                    std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
-                }
+                //for (; start_y <= end_y; ++start_y)
+                //{
+                  //  Point p = {start.x, start_y};
+                    //roads_graph[p].push_back(&road);
+                    //std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
+                //}
             }
         }
 
@@ -1170,8 +1169,8 @@ namespace model
                         session_data.inactive_accumulated_ms += last_tick_delta_ms_; // НОВОЕ
                         auto inactive_duration = std::chrono::milliseconds(session_data.inactive_accumulated_ms);
 
-                        std::cout << ", accumulated_inactive=" << session_data.inactive_accumulated_ms << "ms";
-                        if (inactive_duration > retirement_timeout_)
+                        std::cout << ", accumulated_inactive=" << session_data.inactive_accumulated_ms << "ms" << std::endl;
+                        if (inactive_duration >= retirement_timeout_)
                         {
                             std::cout << " - WILL RETIRE!";
                             players_to_retire.push_back(player_id);
