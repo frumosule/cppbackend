@@ -7,6 +7,7 @@
 #include <cmath>
 #include <boost/json.hpp>
 #include <chrono>
+#include <numeric>
 
 namespace model
 {
@@ -56,7 +57,7 @@ namespace model
                                                map_id, pos_x, pos_y, bag_capacity);
 
         player->SetSpeed(0.0, 0.0);
-        player->SetAFK(); 
+        player->SetAFK();
 
         session->players[player->GetId()] = player;
         players_by_token_[auth_token] = player;
@@ -66,9 +67,9 @@ namespace model
         PlayerSessionData session_data;
         session_data.join_time = now;
         session_data.last_movement_time = now;
-        session_data.inactive_start_time = now; 
+        session_data.inactive_start_time = now;
         session_data.is_active = true;
-        session_data.inactive_started = true; 
+        session_data.inactive_started = true;
         session_data.total_playtime_ms = 0;
 
         player_sessions_[player->GetId()] = session_data;
@@ -174,7 +175,7 @@ namespace model
         std::cout << "GET_PLAYERS_BY_TOKEN: Session found: " << (session ? "YES" : "NO") << std::endl;
         if (!session)
         {
-            std::cout << "GET_PLAYERS_BY_TOKEN: Session players count: " << session->players.size() << std::endl;
+            std::cout << "GET_PLAYERS_BY_TOKEN: No session found for player" << std::endl;
             return {};
         }
 
@@ -399,11 +400,14 @@ namespace model
                 {
                     auto player = session->players[player_id];
 
-                    int total_score = 0;
-                    for (const auto &bag_item : player->GetBag())
-                    {
-                        total_score += bag_item.value;
-                    }
+                    int total_score = std::accumulate(
+                        player->GetBag().begin(),
+                        player->GetBag().end(),
+                        0,
+                        [](int sum, const auto &bag_item)
+                        {
+                            return sum + bag_item.value;
+                        });
 
                     if (total_score > 0)
                     {
@@ -487,13 +491,6 @@ namespace model
                 }
 
                 std::cout << "  Adding horizontal points from " << start_x << " to " << end_x << " at y=" << start.y << std::endl;
-
-                // for (; start_x <= end_x; ++start_x)
-                //{
-                // Point p = {start_x, start.y};
-                // roads_graph[p].push_back(&road);
-                // std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
-                //}
             }
             else
             {
@@ -510,13 +507,6 @@ namespace model
                 }
 
                 std::cout << "  Adding vertical points from " << start_y << " to " << end_y << " at x=" << start.x << std::endl;
-
-                // for (; start_y <= end_y; ++start_y)
-                //{
-                //   Point p = {start.x, start_y};
-                // roads_graph[p].push_back(&road);
-                // std::cout << "    Point (" << p.x << "," << p.y << ")" << std::endl;
-                //}
             }
         }
 
@@ -701,12 +691,9 @@ namespace model
                             std::cout << "Vertical road - stopping at SOUTH boundary: " << max_y << std::endl;
                             return {true, {x, max_y}};
                         }
-                        else
-                        {
-                            double max_y = GetMaxPossible(road, "NORTH");
-                            std::cout << "Vertical road - stopping at NORTH boundary: " << max_y << std::endl;
-                            return {true, {x, max_y}};
-                        }
+                        double max_y = GetMaxPossible(road, "NORTH");
+                        std::cout << "Vertical road - stopping at NORTH boundary: " << max_y << std::endl;
+                        return {true, {x, max_y}};
                     }
                 }
             }
@@ -980,7 +967,7 @@ namespace model
                     if (players_by_id_.find(id) != players_by_id_.end())
                     {
                         std::cout << "WARNING: Duplicate player ID: " << id << " - skipping" << std::endl;
-                        continue; 
+                        continue;
                     }
 
                     auto player = std::make_shared<Player>(id, name, auth_token, map_id, pos_x, pos_y, bag_capacity);
@@ -1139,7 +1126,7 @@ namespace model
                 }
                 else
                 {
-                    if (manual_tick_mode_) 
+                    if (manual_tick_mode_)
                     {
                         session_data.inactive_accumulated_ms += last_tick_delta_ms_;
                         auto inactive_duration = std::chrono::milliseconds(session_data.inactive_accumulated_ms);

@@ -124,7 +124,7 @@ namespace model
             }
         };
 
-        std::unordered_map<Point, std::vector<const Road *>, model::PointHash> BuildRoadsGraph(const Map *map);
+        static std::unordered_map<Point, std::vector<const Road *>, model::PointHash> BuildRoadsGraph(const Map *map);
         bool InBounds(const Road *road, double x, double y) const;
         double GetMaxPossible(const Road *road, const std::string &direction) const;
         std::pair<bool, std::pair<double, double>> CalculateMove(double x, double y, double speed_x, double speed_y, int delta,

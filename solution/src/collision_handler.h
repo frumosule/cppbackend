@@ -20,8 +20,8 @@ public:
         
         size_t ItemsCount() const override;
         collision_detector::Item GetItem(size_t idx) const override;
-        size_t GatherersCount() const;
-        collision_detector::Gatherer GetGatherer(size_t idx) const;
+        size_t GatherersCount() const override;
+        collision_detector::Gatherer GetGatherer(size_t idx) const override;
 
     private:
         const std::unordered_map<Player::Id, std::shared_ptr<Player>>& players_;
